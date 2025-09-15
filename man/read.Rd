@@ -20,9 +20,9 @@ A data frame or appropriate R object containing the imported data.
 }
 \description{
 This function provides a unified interface for reading data from various
-file formats supported by the \code{\link[=rio]{rio}} and
-\code{\link[=sf]{sf}} package. The format is automatically detected from the
-file extension to simplify the importing process.
+file formats supported by the \code{\link[rio:import]{rio::import()}} and \code{\link[sf:st_read]{sf::read_sf()}} functions.
+The format is automatically detected from the file extension to simplify the
+importing process.
 }
 \examples{
 # Locate test data directory
@@ -51,6 +51,5 @@ data_geojson <- read(file_path = file.path(path, "test_data.GeoJSON"))
 
 }
 \seealso{
-\code{\link[=rio]{rio::import()}} and
-\code{\link[=sf]{sf::read_sf()}},  which this function is based on.
+\code{\link[rio:import]{rio::import()}} and \code{\link[sf:st_read]{sf::read_sf()}}, which this function is based on.
 }

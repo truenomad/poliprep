@@ -21,9 +21,9 @@ No return value, called for side effects.
 }
 \description{
 This function provides a unified interface for saving data to various
-file formats supported by the \code{\link[=rio]{rio::export()}}
-function. The format is automatically detected from the file extension to
-simplify the saving process.
+file formats supported by the \code{\link[rio:export]{rio::export()}} function. The format is
+automatically detected from the file extension to simplify the saving
+process.
 }
 \examples{
 # Create temporary account
@@ -60,6 +60,5 @@ my_shp <-  sf::st_sfc(
 unlink(tmpdir, recursive = TRUE)
 }
 \seealso{
-\code{\link[=rio]{rio::import()}} and
-\code{\link[=sf]{sf::read_sf()}},  which this function is based on.
+\code{\link[rio:export]{rio::export()}} and \code{\link[sf:st_write]{sf::write_sf()}}, which this function uses.
 }

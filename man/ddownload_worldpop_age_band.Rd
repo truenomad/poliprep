@@ -131,7 +131,7 @@ Where:
 }
 \examples{
 \dontrun{
-# Download Tunisia and Gambia data for ages 1-9 for years 2020-2021
+# Download Tunisia and Gambia data for ages 0-9 for years 2020-2021
 download_worldpop_age_band(
   country_codes = c("TUN", "GMB")
   years = 2020:2021,

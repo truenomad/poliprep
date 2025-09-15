@@ -1,9 +1,9 @@
 #' Read in Data and Shapefiles from Various File Formats
 #'
 #' This function provides a unified interface for reading data from various
-#' file formats supported by the \code{\link[=rio]{rio}} and 
-#' \code{\link[=sf]{sf}} package. The format is automatically detected from the 
-#' file extension to simplify the importing process.
+#' file formats supported by the [rio::import()] and [sf::read_sf()] functions.
+#' The format is automatically detected from the file extension to simplify the
+#' importing process.
 #'
 #' @param file_path Character string specifying the path to the input file or
 #'   a URL pointing to the dataset.
@@ -39,8 +39,7 @@
 #' # Import an shapefiles file (GeoJSON/json)
 #' data_geojson <- read(file_path = file.path(path, "test_data.GeoJSON"))
 #'
-#' @seealso \code{\link[=rio]{rio::import()}} and 
-#'         \code{\link[=sf]{sf::read_sf()}},  which this function is based on.
+#' @seealso [rio::import()] and [sf::read_sf()], which this function is based on.
 #'
 #' @importFrom rio import
 #' @importFrom sf read_sf
