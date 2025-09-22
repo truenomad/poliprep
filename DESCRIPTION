@@ -25,6 +25,7 @@ Remotes:
     github::coolbutuseless/optout
 Imports:
   rio,
+  fs,
   cli,
   dplyr,
   tidyr,
