@@ -23,6 +23,7 @@ globalVariables(
     "replacement",
     "name_corrected",
     "name_corrected2",
+    "original",
     "province",
     "_id",
     "matched_names",

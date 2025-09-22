@@ -12,20 +12,18 @@ prep_geonames(
   level2 = NULL,
   level3 = NULL,
   level4 = NULL,
-  who_region = NULL,
   cache_path = NULL,
+  unmatched_export_path = NULL,
   method = "jw",
-  stratify = TRUE,
   interactive = TRUE,
-  max_options = 200
+  max_options = 200,
+  preserve_case = FALSE
 )
 }
 \arguments{
 \item{target_df}{Data frame containing the admin names to clean.}
 
-\item{lookup_df}{Lookup data frame for verifying admin names. If this is not
-provided, an internal version of WHO geoname data
-attached to poliprep is used.}
+\item{lookup_df}{Lookup data frame for verifying admin names.}
 
 \item{level0}{level0 col name (country) in both 'data' and 'lookup_data'.}
 
@@ -37,17 +35,19 @@ attached to poliprep is used.}
 
 \item{level4}{level4 col name (settlement) in both 'data' and 'lookup_data'.}
 
-\item{who_region}{If using the internal version of WHO geoname data, you can]
-specify the region name of interest to speed up the name matching.
-The default is NULL which includes all regions, however, users can
-pick from the following regions: AFRO, AMRO, EMRO, EURO, SEARO & WPRO.}
-
 \item{cache_path}{Optional; the path where the cache data frame is
 saved after user modifications. This path is also used to match and
 integrate previously established corrections into the current
 session. If NULL or the file does not exist at the provided path,
 users will be prompted to specify a new path or create a new cache
 data frame.}
+
+\item{unmatched_export_path}{Optional; path to save unmatched data after
+processing. The file will include complete rows with full hierarchical
+context, showing which column needs matching (typically the most
+granular level like health facilities) along with all administrative
+levels and metadata (timestamp, username, data sources). Supports .csv
+and .rds file formats based on the file extension.}
 
 \item{method}{The string distance calculation method(s) to be used. Users
 can specify one or more algorithms from the
@@ -59,14 +59,15 @@ default uses \code{"jw"} (Jaro-Winkler). Other options include:
 \code{"qgram"} (Q-Gram), \code{"jw"} (Jaro-Winkler), and
 \code{"soundex"}.}
 
-\item{stratify}{Logical; if TRUE, performs cleaning stratified by
-admin levels to maintain hierarchical consistency.}
-
 \item{interactive}{Logical; if TRUE, prompts the user for interactive
 matching decisions. Defaults to FALSE.}
 
 \item{max_options}{Maximum number of options to output for string distance
 matching. Default is 200.}
+
+\item{preserve_case}{Logical; if TRUE, preserves the original case of admin
+names from the lookup data when returning matched values. If FALSE
+(default), returns all admin names in uppercase as before.}
 }
 \value{
 A data frame with cleaned administrative names and saved data frame
@@ -74,16 +75,12 @@ of user decisions.
 }
 \description{
 This function streamlines the admin name cleaning process, leveraging both
-algorithmic approaches and interactive user decisions. It is inspired
-by the string distance matching of the
-\code{\link[epiCleanr]{clean_admin_names}} function (Mo
-Yusuf at WHO AFRO) and the interactivity of \code{cache_to_plias} in the \code{stanley}
-package by Steve Kroiss from BMGF. It combines string distance
-algorithms for initial matching and offers user interactivity for final
-decision-making, which are then saved for future reference and sharing.
+algorithmic approaches and interactive user decisions. It combines string
+distance algorithms for initial matching and offers user interactivity for
+final decision-making, which are then saved for future reference and sharing.
 Although the function does not require limiting name matching exclusively to
 upper-level admins, optimal performance is achieved by confining to stricter
-within-admin stratifications (through the use of stratify function option),
+within-admin stratifications,
 ensuring more accurate results. The function can also work with site names
 or even any string matching that has lookup data.
 }
@@ -106,19 +103,22 @@ user choices and algorithmic matching.
 }
 }
 \examples{
+\donttest{
 # Dummy target data
-# target_df <- data.frame(
-# country = c("ANGOLA", "UGA", "ZAMBIA"),
-# province = c("CABONDA", "TESO", "LUSAKA"),
-# district = c("BALIZE", "BOKEDEA", "RAFUNSA"),
-# subdistrict = c("AREA1", "AREA2", "AREA3")
-# )
+target_df <- data.frame(
+  country = c("ANGOLA", "UGA", "ZAMBIA"),
+  province = c("CABONDA", "TESO", "LUSAKA"),
+  district = c("BALIZE", "BOKEDEA", "RAFUNSA"),
+  subdistrict = c("AREA1", "AREA2", "AREA3")
+)
 
 # Interactively clean geonames
-# prep_geonames(
-# target_df,
-# level0 ="country", level1 = 'province',
-# level2 = "district", level3 = "subdistrict"
-# )
+prep_geonames(
+  target_df,
+  level0 = "country", level1 = "province",
+  level2 = "district",
+  interactive = FALSE # replace with TRUE for interactivty
+)
+}
 
 }
