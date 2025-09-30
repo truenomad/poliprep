@@ -23,22 +23,6 @@ install.packages("devtools")
 devtools::install_github("WorldHealthOrganization/poliprep")
 ```
 
-## :globe_with_meridians: Roadmap
-
-We plan to add a number of functions which do the following:
-
-- [x] Import and export different datasets (tabular, shapefiles, etc.).
-- [x] Pull data from ONA using an API call.
-- [x] Update data from ONA API without re-downloading.
-- [x] Clean and fix names of places including geolocations.
-- [x] Check and clean geo-coordinates.
-- [x] Match variables naming conventions & datatypes within two dataframes.
-- [x] Validate AFP & ES POLIS data.
-- [x] Validate AFP Surveillance data.
-- [x] Validate A Surveillance data.
-- [x] Create New Detections Table from POLIS data.
-
-
 ## Usage
 
 ### Data Management (Import, Export, and Manipulation)
