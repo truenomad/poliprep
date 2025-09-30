@@ -1,7 +1,7 @@
 # <img src="man/figures/logo.png" align="right" height="139" alt="" />
 
 <!-- badges: start -->
-  [![R-CMD-check](https://github.com/WorldHealthOrganization/poliprep/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/WorldHealthOrganization/poliprep/actions/workflows/R-CMD-check.yaml)  [![CodeFactor](https://www.codefactor.io/repository/github/WorldHealthOrganization/poliprep/badge)](https://www.codefactor.io/repository/github/WorldHealthOrganization/poliprep) [![codecov](https://codecov.io/gh/WorldHealthOrganization/poliprep/graph/badge.svg?token=PCYAMB2S6Y)](https://codecov.io/gh/WorldHealthOrganization/poliprep)
+  [![R-CMD-check](https://github.com/truenomad/poliprep/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/truenomad/poliprep/actions/workflows/R-CMD-check.yaml)  [![CodeFactor](https://www.codefactor.io/repository/github/truenomad/poliprep/badge)](https://www.codefactor.io/repository/github/truenomad/poliprep) [![codecov](https://codecov.io/gh/truenomad/poliprep/graph/badge.svg?token=PCYAMB2S6Y)](https://codecov.io/gh/truenomad/poliprep)
 <!-- badges: end -->
 
 # poliprep
@@ -20,7 +20,7 @@ The package is yet to be available on Cran, but can be installed using `devtools
 install.packages("devtools")
 
 # 2) Install the poliprep package from GitHub
-devtools::install_github("WorldHealthOrganization/poliprep")
+devtools::install_github("truenomad/poliprep")
 ```
 
 ## Usage
@@ -532,4 +532,4 @@ For any issues or questions about `poliprep`, please contact Mo at [moyusuf\@who
 
 ## :handshake: Guidance on making contributions
 
-We welcome contributions via forking and pull requests. For guidance and best practices, please follow [WHO's Contribution Guidelines](https://github.com/WorldHealthOrganization/open-source-communication-channel/blob/main/CONTRIBUTING.md). Additionally, before any contribution, please ensure you are familiar with WHO's [Contributor Covenant Code of Conduct](https://github.com/WorldHealthOrganization/open-source-communication-channel/tree/main?tab=coc-ov-file).
+We welcome contributions via forking and pull requests. For guidance and best practices, please follow [WHO's Contribution Guidelines](https://github.com/truenomad/open-source-communication-channel/blob/main/CONTRIBUTING.md). Additionally, before any contribution, please ensure you are familiar with WHO's [Contributor Covenant Code of Conduct](https://github.com/truenomad/open-source-communication-channel/tree/main?tab=coc-ov-file).
