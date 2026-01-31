@@ -1,46 +1,82 @@
-#' Save Dataframe to RDS File
+#' Universal Console Clearing
 #'
-#' Prompts the user for confirmation before saving a dataframe to a RDS file.
-#' If the specified file path does not exist or is NULL, the user is prompted to
-#' provide a new path. A default file name is used if no valid path is provided.
-#' If a cache file already exists, the function merges new data with existing
-#' data, ensuring that the most recent entries (based on `created_time`)
-#' are retained.
+#' Attempts multiple methods to clear the console across different R environments
+#' including RStudio, VSCode, Positron, and various terminal applications.
+#'
+#' @return Invisible NULL
+#' @keywords internal
+#' @noRd
+.clear_console <- function() {
+  if (!interactive()) return(invisible(NULL))
+
+  # Method 1: Form feed (works in RStudio)
+  cat("\014")
+
+  # Method 2: ANSI escape codes (works in most terminals including VSCode)
+  cat("\033[2J\033[H")
+
+  # Method 3: System call for Unix/Mac terminals
+  if (.Platform$OS.type == "unix") {
+    system("clear", ignore.stdout = TRUE, ignore.stderr = TRUE)
+  }
+
+  # Method 4: System call for Windows
+  if (.Platform$OS.type == "windows") {
+    system("cls", ignore.stdout = TRUE, ignore.stderr = TRUE)
+  }
+
+  invisible(NULL)
+}
+
+#' Save Dataframe Using sntutils Write Function
+#'
+#' Prompts the user for confirmation before saving a dataframe to a file.
+#' Supports all file formats supported by the sntutils write() function
+#' including RDS, CSV, Excel, DTA, TSV, and more. If the specified file path
+#' does not exist or is NULL, the user is prompted to provide a new path.
+#' A default file name is used if no valid path is provided. If a cache file
+#' already exists, the function merges new data with existing data, ensuring
+#' that the most recent entries (based on `created_time`) are retained.
 #'
 #' @param data_to_save DataFrame to be saved.
 #' @param default_save_path Default path for saving the dataframe. If not
 #'                     provided or invalid, the user is prompted for a new path.
-#'                    Defaults to \code{NULL}.
+#'                     File extension determines format (e.g., .rds, .csv, .xlsx,
+#'                     .dta, .tsv). Defaults to \code{NULL}.
 #'
 #' @return Invisible \code{NULL}. The function's primary purpose is to saving a
 #'        file, not to return a value.
 #'
 #' @examples
 #' # handle_file_save(data_to_save, "path/to/default/location.rds")
+#' # handle_file_save(data_to_save, "path/to/default/location.csv")
+#' # handle_file_save(data_to_save, "path/to/default/location.xlsx")
+#' # handle_file_save(data_to_save, "path/to/default/location.dta")
+#' # handle_file_save(data_to_save, "path/to/default/location.tsv")
 #'
 #' @keywords internal
 #' @noRd
 handle_file_save <- function(data_to_save, default_save_path = NULL) {
   cache_path <- default_save_path
-  
+
   while (TRUE) {
     # Prompt user for confirmation
     confirm_save <- tolower(
       readline("Do you want to save the cleaned cache file? [y/n]: ")
     )
-    
+
     if (confirm_save == "y") {
       # Validate or set a default cache path
       if (is.null(cache_path) || dir.exists(cache_path)) {
         cli::cli_alert_warning(
           "The specified path is null or is a directory."
         )
-        
+
         # Prompt for a valid file path
         cache_path <- readline(
           prompt = "Enter the new file path (including filename) for saving: "
         )
-        
+
         # Ensure the file path includes a filename
         if (cache_path == "" || dir.exists(cache_path)) {
           cache_path <- file.path(getwd(), "prepped_geoname_cache.rds")
@@ -49,28 +85,34 @@ handle_file_save <- function(data_to_save, default_save_path = NULL) {
           )
         }
       }
-      
+
       # Ensure parent directory exists
       cache_dir <- dirname(cache_path)
       if (!dir.exists(cache_dir)) {
         dir.create(cache_dir, recursive = TRUE)
       }
-      
+
       # Ensure we are working with a file, not a directory
       if (dir.exists(cache_path)) {
-        cli::cli_abort("`cache_path` should be a file path, not a directory.")
+         cli::cli_abort("`cache_path` should be a file path, not a directory.")
       }
-      
+
       # Set up file lock to prevent concurrent overwrites
       lock_path <- paste0(cache_path, ".lock")
       lock <- filelock::lock(lock_path, timeout = 10000)
       on.exit(filelock::unlock(lock))
       file.remove(lock_path)
-      
-      # Load existing cache if available
-      existing_cache <-
-        if (file.exists(cache_path)) readRDS(cache_path) else NULL
-      
+
+      # Load existing cache if available using sntutils read()
+      existing_cache <- if (file.exists(cache_path)) {
+        tryCatch(
+          read(cache_path),
+          error = function(e) NULL
+        )
+      } else {
+        NULL
+      }
+
       # Merge with existing cache if applicable
       if (!is.null(existing_cache) && nrow(existing_cache) > 0) {
         merged_cache <- dplyr::bind_rows(existing_cache, data_to_save) |>
@@ -79,9 +121,9 @@ handle_file_save <- function(data_to_save, default_save_path = NULL) {
       } else {
         merged_cache <- data_to_save
       }
-      
-      # Save the merged cache
-      saveRDS(merged_cache, cache_path)
+
+      # Save the merged cache using sntutils write()
+      write(merged_cache, cache_path)
       cli::cli_alert_success("File saved successfully to {cache_path}.")
       break
     } else if (confirm_save == "n") {
@@ -125,18 +167,18 @@ get_hierarchical_combinations <- function(df, levels) {
   if (length(levels) == 0 || is.null(levels)) {
     return(data.frame())
   }
-  
+
   # If input is an sf object, drop geometry to avoid list columns
   if (inherits(df, "sf")) {
     df <- sf::st_drop_geometry(df)
   }
-  
+
   # Filter to only the specified levels that exist in the dataframe
   existing_levels <- levels[levels %in% names(df)]
   if (length(existing_levels) == 0) {
     return(data.frame())
   }
-  
+
   # Remove rows with any NA values and get unique combinations
   df_subset <- df[, existing_levels, drop = FALSE]
   df_clean <- df_subset[stats::complete.cases(df_subset), , drop = FALSE]
@@ -191,19 +233,19 @@ get_hierarchical_combinations <- function(df, levels) {
 #' )
 #' @export
 calculate_match_stats <- function(
-    data,
-    lookup_data,
-    level0 = NULL,
-    level1 = NULL,
-    level2 = NULL,
-    level3 = NULL,
-    level4 = NULL
+  data,
+  lookup_data,
+  level0 = NULL,
+  level1 = NULL,
+  level2 = NULL,
+  level3 = NULL,
+  level4 = NULL
 ) {
-  
+
   # normalize case
   levels_vec <- c(level0, level1, level2, level3, level4) |>
     (\(v) v[!vapply(v, is.null, logical(1))])()
-  
+
   if (length(levels_vec) > 0) {
     for (lv in levels_vec) {
       if (lv %in% names(data)) {
@@ -214,14 +256,14 @@ calculate_match_stats <- function(
       }
     }
   }
-  
+
   # helpers ---------------------------------------------------------------
-  
+
   compose_fields <- function(...) {
     f <- c(...)
     f[!vapply(f, is.null, logical(1))]
   }
-  
+
   build_keys <- function(df, fields) {
     if (length(fields) == 0) {
       return(character(0))
@@ -235,7 +277,7 @@ calculate_match_stats <- function(
     }
     unique(do.call(paste, c(combos[fields], sep = "_")))
   }
-  
+
   resolve_label <- function(label, fallback) {
     if (is.null(label) || is.na(label) || identical(label, "")) {
       fallback
@@ -243,11 +285,11 @@ calculate_match_stats <- function(
       label
     }
   }
-  
+
   big_mark <- function(n) {
     if (is.na(n)) "NA" else formatC(n, format = "d", big.mark = ",")
   }
-  
+
   paint_matches <- function(matches, total) {
     num <- big_mark(matches)
     if (!is.na(matches) && !is.na(total) && matches < total) {
@@ -256,9 +298,9 @@ calculate_match_stats <- function(
       num
     }
   }
-  
+
   results <- list()
-  
+
   process_level <- function(level_key, level_num, fields, label) {
     data_keys <- build_keys(data, fields)
     lookup_keys <- build_keys(lookup_data, fields)
@@ -271,7 +313,7 @@ calculate_match_stats <- function(
       total_lookup = length(lookup_keys)
     )
   }
-  
+
   # compute per-level
   if (!is.null(level0)) {
     process_level("level0", 0L, compose_fields(level0), level0)
@@ -303,18 +345,18 @@ calculate_match_stats <- function(
       level4
     )
   }
-  
+
   # enforce display order
   ordered_keys <- c("level0", "level1", "level2", "level3", "level4")
   rows <- results[ordered_keys]
   rows <- rows[!vapply(rows, is.null, logical(1))]
-  
+
   # headers
   left_hdr <- "Target data as base N"
   right_hdr <- "Lookup data as base N"
-  
+
   bullet <- "\u2022"
-  
+
   build_left <- function(r) {
     glue::glue(
       "{bullet} {r$label} (level{r$level_num}): ",
@@ -329,7 +371,7 @@ calculate_match_stats <- function(
       "{big_mark(r$total_lookup)} matched"
     )
   }
-  
+
   left_lines <- if (length(rows)) {
     vapply(rows, build_left, character(1))
   } else {
@@ -340,7 +382,7 @@ calculate_match_stats <- function(
   } else {
     character(0)
   }
-  
+
   # two columns
   content_vec <- cli::ansi_columns(
     c(
@@ -355,9 +397,9 @@ calculate_match_stats <- function(
     align = "left",
     sep = "  "
   )
-  
+
   cli::cli_h1(glue::glue("{cli::symbol$info} Match Summary"))
-  cat("\n")
+   cat("\n")
   # compute completeness by side across all reported levels
   # (complete = all matches equal denominators on that side)
   target_complete <- length(rows) > 0 &&
@@ -372,7 +414,7 @@ calculate_match_stats <- function(
       \(r) isTRUE(r$matches == r$total_lookup),
       logical(1)
     ))
-  
+
   # emit side-by-side summary message
   if (target_complete && lookup_complete) {
     # both sides perfect
@@ -391,7 +433,7 @@ calculate_match_stats <- function(
       "Both sides have unmatched names; see per-level lines below."
     )
   }
-  
+
   # check and report missing names per provided level columns
   # (counts of NA or empty-string values in each dataset)
   if (length(levels_vec) > 0) {
@@ -407,7 +449,7 @@ calculate_match_stats <- function(
       },
       integer(1)
     )
-    
+
     # count missing in lookup
     miss_lookup <- vapply(
       levels_vec,
@@ -420,15 +462,15 @@ calculate_match_stats <- function(
       },
       integer(1)
     )
-    
+
     any_missing <- any(miss_data > 0L | miss_lookup > 0L)
-    
+
     if (isTRUE(any_missing)) {
       # header alert
       cli::cli_alert_warning(
         "Missing names detected in supplied levels (not included in N)."
       )
-      
+
       # per-level report lines (only show sides with missing values)
       for (i in seq_along(levels_vec)) {
         msgs <- c()
@@ -446,7 +488,7 @@ calculate_match_stats <- function(
       }
     }
   }
-  cat("\n")
+   cat("\n")
   # final box, no borders
   cli::cat_line(content_vec)
 }
@@ -477,10 +519,10 @@ format_choice <- function(index, choice, width) {
 #' @param column_width Width of each column
 #' @return Vector of formatted choice strings, one per row
 #' @noRd
-format_choices <- function(choices, num_columns, column_width = 45) {
+format_choices <- function(choices, num_columns, column_width = 60) {
   num_choices <- length(choices)
   rows_per_column <- ceiling(num_choices / num_columns)
-  
+
   formatted_choices <- character(rows_per_column)
   for (i in 1:rows_per_column) {
     row_parts <- character(num_columns)
@@ -508,6 +550,8 @@ format_choices <- function(choices, num_columns, column_width = 45) {
 #' @param choices_input Vector of option strings to display.
 #' @param special_actions Named list of special actions with string identifiers.
 #' @param prompt String to display for user input prompt.
+#' @param column_width Numeric; the maximum width (in characters) for each
+#'        column in the menu display. Default is 60.
 #'
 #' @return The selected option's identifier (numeric or special action key).
 #' @importFrom cli cli_h1 cli_h2 cli_text cli_alert_warning
@@ -519,24 +563,25 @@ format_choices <- function(choices, num_columns, column_width = 45) {
 #' @keywords internal
 #' @noRd
 display_custom_menu <- function(title, main_header, choices_input,
-                                special_actions, prompt) {
+                                special_actions, prompt,
+                                column_width = 60) {
   cli::cli_h1(main_header)
   cli::cli_h2(title)
-  
+
   num_choices <- length(choices_input)
   num_columns <- if (num_choices > 50) 3 else if (num_choices > 25) 2 else 1
-  
+
   formatted_choices <- format_choices(choices_input, num_columns,
-                                      column_width = 45
+    column_width = column_width
   )
   cat("\n")
   cat(formatted_choices, sep = "\n")
   cat("\n")
-  
+
   for (key in names(special_actions)) {
     cat(sprintf("%s: %s\n", key, special_actions[[key]]))
   }
-  
+
   cat("\n")
   repeat {
     choice <- tolower(readline(prompt = paste0(prompt)))
@@ -548,7 +593,7 @@ display_custom_menu <- function(title, main_header, choices_input,
     }
     cat("Invalid choice, please try again.\n")
   }
-  
+
   choice
 }
 
@@ -582,7 +627,7 @@ calculate_string_distance <- function(
     name_to_match = admins_to_clean,
     matched_names = lookup_admins
   ) |> dplyr::distinct()
-  
+
   # Calculate distances for each pair
   results <- results |>
     dplyr::rowwise() |>
@@ -593,24 +638,24 @@ calculate_string_distance <- function(
       )
     ) |>
     dplyr::ungroup()
-  
+
   # Sort results for each name_to_match based on distance
   results <- results |>
     dplyr::group_by(name_to_match) |>
     dplyr::arrange(distance, .by_group = TRUE) |>
     dplyr::mutate(match_rank = dplyr::row_number()) |>
     dplyr::ungroup()
-  
+
   # Add algorithm name
   results$algorithm_name <- method
-  
+
   # Reorder columns
   results <- results |>
     dplyr::select(
       algorithm_name, name_to_match,
       matched_names, distance, match_rank
     )
-  
+
   results
 }
 
@@ -629,6 +674,8 @@ calculate_string_distance <- function(
 #'                  prompts; defaults to TRUE.
 #' @param max_options Maximum number of options to display in the menu.
 #'       Default is 200.
+#' @param column_width Numeric; the maximum width (in characters) for each
+#'       column in the interactive menu display. Default is 60.
 #'
 #' @return Data frame of user-selected replacements if any; otherwise,
 #'          provides feedback based on user actions.
@@ -640,9 +687,10 @@ calculate_string_distance <- function(
 #' @noRd
 handle_user_interaction <- function(input_data, levels, level,
                                     clear_console = TRUE,
-                                    max_options) {
+                                    max_options,
+                                    column_width = 60) {
   # Interactivity --------------------------------------------------------------
-  
+
   # set up the messaging prompts at the start of the function
   prompts <- c(
     "What'll it be?:",
@@ -658,64 +706,69 @@ handle_user_interaction <- function(input_data, levels, level,
     "Where to next?:"
   )
   prompt <- sample(prompts)[1]
-  
+
   # filter out missing cachees
   input_data <- input_data |>
     dplyr::filter(
       !is.na(matched_names) & !is.na(name_to_match)
     )
-  
-  # set cachees for looping
-  unique_names <- unique(input_data$name_to_match)
-  
+
+  # set cachees for looping - use unique (name, context) pairs to avoid
+
+  # cross-context contamination when same name appears in multiple hierarchies
+  unique_contexts <- input_data |>
+    dplyr::distinct(name_to_match, long_geo)
+
   # initialize empty lists to store user choices
   user_choices <- list()
   user_choice <- NULL
-  
+
   # loop through unmatched records in input_data
   # Initialize the index
   i <- 1
-  while (i <= length(unique_names)) {
+  while (i <= nrow(unique_contexts)) {
     # clear console
     if (clear_console) {
-      cat("\014")
-      cat("\033[2J", "\033[H")
+      .clear_console()
     }
-    
+
     # Define color using crayon function
     red <- crayon::red
     bl <- crayon::blue
     gr <- crayon::green
     b <- crayon::bold
     p <- crayon::underline
-    
+
     # set up choices -----------------------------------------------------------
     # select the cache to clean and suggested replacements
-    name_to_clean <- unique_names[i]
+    name_to_clean <- unique_contexts$name_to_match[i]
+    current_long_geo <- unique_contexts$long_geo[i]
     replacement_name <- input_data |>
       dplyr::filter(
-        name_to_match == name_to_clean
+        name_to_match == name_to_clean,
+        long_geo == current_long_geo
       ) |>
       dplyr::distinct(matched_names) |>
       # narrow down to top max_options
       dplyr::slice(0:max_options) |>
       dplyr::pull() |>
       stringr::str_to_title()
-    
-    # get unique long names
+
+    # get unique long names for this specific context
     unique_geo_long <- input_data |>
       dplyr::filter(
-        name_to_match == name_to_clean
+        name_to_match == name_to_clean,
+        long_geo == current_long_geo
       ) |>
       dplyr::distinct()
-    
+
     # set output title ---------------------------------------------------------
-    
+
     # set up main header to keep track
     main_header <- glue::glue(
-      "{stringr::str_to_title(level)} {i} of {length(unique_names)}"
+      "{stringr::str_to_title(level)} {i} of {nrow(unique_contexts)}"
     )
-    
+
     if (!is.na(levels[2]) && level == levels[2]) {
       level_label <- "level1"
       long_geo <- unique_geo_long$long_geo[1]
@@ -784,7 +837,7 @@ handle_user_interaction <- function(input_data, levels, level,
         "{b(red(str_cache))} with?"
       )
     }
-    
+
     # action set up ------------------------------------------------------------
     special_actions <- list(
       "B" = "Go Back",
@@ -793,15 +846,16 @@ handle_user_interaction <- function(input_data, levels, level,
       "Q" = "Exit without saving",
       "M" = "Enter name manually"
     )
-    
+
     # present the menu to the user ---------------------------------------------
     user_choice <- display_custom_menu(
       title, main_header,
       replacement_name,
       special_actions,
-      prompt = prompt
+      prompt = prompt,
+      column_width = column_width
     )
-    
+
     # handle user choices ------------------------------------------------------
     if (user_choice == "b") { # Go Back
       if (i > 1) {
@@ -813,6 +867,7 @@ handle_user_interaction <- function(input_data, levels, level,
     } else if (user_choice == "s") { # Skip this one
       cli::cli_alert_info("You are skipping this one...")
       i <- i + 1
+      if (clear_console) .clear_console()
       next
     } else if (user_choice == "e") { # Save and exit
       if (length(user_choices) > 0) {
@@ -853,6 +908,7 @@ handle_user_interaction <- function(input_data, levels, level,
         cli::cli_alert_warning("No name entered. Returning to menu...")
       }
       i <- i + 1
+      if (clear_console) .clear_console()
     } else {
       suppressWarnings({
         replace_int <- toupper(replacement_name[as.integer(user_choice)])
@@ -871,17 +927,17 @@ handle_user_interaction <- function(input_data, levels, level,
         )
       })
       i <- i + 1
+      if (clear_console) .clear_console()
     }
   }
-  
+
   # Aggregation user-chosen replacements into df -------------------------------
-  
+
   # clear console
   if (clear_console) {
-    cat("\014")
-    cat("\033[2J", "\033[H")
+    .clear_console()
   }
-  
+
   if (length(user_choices) != 0) {
     # Combine user choices into a single data frame
     user_choices_df <- dplyr::bind_rows(user_choices) |>
@@ -898,7 +954,7 @@ handle_user_interaction <- function(input_data, levels, level,
       dplyr::group_by(longname_to_match) |>
       dplyr::slice_max(created_time, with_ties = FALSE) |>
       dplyr::ungroup()
-    
+
     cli::cli_alert_success(
       "Your selections have been successfully saved. Exiting..."
     )
@@ -1005,11 +1061,11 @@ apply_case_mapping <- function(df, case_mapping, levels) {
   if (is.null(case_mapping)) {
     return(df)
   }
-  
+
   for (level in levels) {
     if (!is.null(level) && level %in% names(df) && level %in% names(case_mapping)) {
       mapping <- case_mapping[[level]]
-      
+
       # Join with mapping to get original case
       df <- df |>
         dplyr::left_join(
@@ -1017,12 +1073,12 @@ apply_case_mapping <- function(df, case_mapping, levels) {
           by = stats::setNames("uppercase", level)
         ) |>
         dplyr::mutate(
-          !!level := dplyr::coalesce(original, .data[[level]])
+          !!rlang::sym(level) := dplyr::coalesce(original, .data[[level]])
         ) |>
         dplyr::select(-original)
     }
   }
-  
+
   return(df)
 }
 
@@ -1061,8 +1117,8 @@ get_user_identity <- function() {
 #' @keywords internal
 #' @noRd
 export_unmatched_data <- function(target_todo, unmatched_export_path,
-                                  level0, level1, level2, level3, level4) {
-  
+                                 level0, level1, level2, level3, level4) {
+
   if (nrow(target_todo) > 0) {
     # Get the source names from the tagged data
     target_name <- if ("target_data" %in% names(target_todo)) {
@@ -1075,40 +1131,40 @@ export_unmatched_data <- function(target_todo, unmatched_export_path,
     } else {
       NA_character_
     }
-    
+
     # Build list of columns to keep - dynamic based on input
     cols_to_keep <- c()
     if (
       !is.null(level0) &&
-      level0 %in% names(target_todo)
+        level0 %in% names(target_todo)
     ) {
       cols_to_keep <- c(cols_to_keep, level0)
     }
     if (
       !is.null(level1) &&
-      level1 %in% names(target_todo)
+        level1 %in% names(target_todo)
     ) {
       cols_to_keep <- c(cols_to_keep, level1)
     }
     if (
       !is.null(level2) &&
-      level2 %in% names(target_todo)
+        level2 %in% names(target_todo)
     ) {
       cols_to_keep <- c(cols_to_keep, level2)
     }
     if (
       !is.null(level3) &&
-      level3 %in% names(target_todo)
+        level3 %in% names(target_todo)
     ) {
       cols_to_keep <- c(cols_to_keep, level3)
     }
     if (
       !is.null(level4) &&
-      level4 %in% names(target_todo)
+        level4 %in% names(target_todo)
     ) {
       cols_to_keep <- c(cols_to_keep, level4)
     }
-    
+
     # Identify the unmatched column (typically the lowest/most granular level)
     # Start from level4 (most granular) and work up
     unmatched_column <- NA
@@ -1123,7 +1179,7 @@ export_unmatched_data <- function(target_todo, unmatched_export_path,
     } else if (!is.null(level0) && level0 %in% cols_to_keep) {
       unmatched_column <- level0  # e.g., "adm0"
     }
-    
+
     # Create the export dataframe with all context
     # Keep complete rows showing the hierarchical context
     unmatched_df <- target_todo |>
@@ -1146,38 +1202,19 @@ export_unmatched_data <- function(target_todo, unmatched_export_path,
         "created_time",
         "name_of_creator"
       )
-    
-    # Save based on file extension
-    file_ext <- tools::file_ext(unmatched_export_path)
-    
+
+    # Save using sntutils write() function
     tryCatch({
-      if (tolower(file_ext) == "csv") {
-        utils::write.csv(unmatched_df, unmatched_export_path, row.names = FALSE)
-        cli::cli_alert_success(
-          "Unmatched data exported to: {fs::path_rel(unmatched_export_path)}"
-        )
-      } else if (tolower(file_ext) == "rds") {
-        saveRDS(unmatched_df, unmatched_export_path)
-        cli::cli_alert_success(
-          "Unmatched data exported to: {fs::path_rel(unmatched_export_path)}"
-        )
-      } else {
-        # Default to CSV if extension not recognized
-        utils::write.csv(
-          unmatched_df,
-          paste0(fs::path_rel(unmatched_export_path), ".csv"),
-          row.names = FALSE
-        )
-        cli::cli_alert_success(
-          "Unmatched data exported to: ",
-          "{paste0(fs::path_rel(unmatched_export_path), '.csv')}"
-        )
-      }
-      
+      write(unmatched_df, unmatched_export_path)
+      cli::cli_alert_success(
+        "Unmatched data exported to: {.file {unmatched_export_path}}"
+      )
+
       # Show summary of unmatched data
+      # Extract the column name for display
+      col_name <- if (!is.na(unmatched_column)) unmatched_column else "unknown"
       cli::cli_alert_info(
-        "Exported {nrow(unmatched_df)} unmatched rows for column ",
-        "'{unmatched_column}'"
+        "Exported {nrow(unmatched_df)} unmatched rows for column '{col_name}'"
       )
     }, error = function(e) {
       cli::cli_alert_warning(
@@ -1202,24 +1239,28 @@ export_unmatched_data <- function(target_todo, unmatched_export_path,
 #' or even any string matching that has lookup data.
 #'
 #' @param target_df Data frame containing the admin names to clean.
-#' @param lookup_df Lookup data frame for verifying admin names. 
+#' @param lookup_df Lookup data frame for verifying admin names. If this is not
+#'                  provided, an internal version of WHO geoname data
+#'                  attached to sntutils is used.
 #' @param level0 level0 col name (country) in both 'data' and 'lookup_data'.
 #' @param level1 level1 col name (province) in both 'data' and 'lookup_data'.
 #' @param level2 level2 col name (district) in both 'data' and 'lookup_data'.
 #' @param level3 level3 col name (subdistrict) in both 'data' and 'lookup_data'.
 #' @param level4 level4 col name (settlement) in both 'data' and 'lookup_data'.
 #' @param cache_path Optional; the path where the cache data frame is
-#'        saved after user modifications. This path is also used to match and
-#'        integrate previously established corrections into the current
-#'        session. If NULL or the file does not exist at the provided path,
-#'        users will be prompted to specify a new path or create a new cache
-#'        data frame.
+#'        saved after user modifications. Supports all file formats supported
+#'        by sntutils read() and write() functions including .rds, .csv, .xlsx,
+#'        .dta, .tsv, and more. This path is also used to match and integrate
+#'        previously established corrections into the current session. If NULL
+#'        or the file does not exist at the provided path, users will be
+#'        prompted to specify a new path or create a new cache data frame.
 #' @param unmatched_export_path Optional; path to save unmatched data after
 #'        processing. The file will include complete rows with full hierarchical
 #'        context, showing which column needs matching (typically the most
 #'        granular level like health facilities) along with all administrative
-#'        levels and metadata (timestamp, username, data sources). Supports .csv
-#'        and .rds file formats based on the file extension.
+#'        levels and metadata (timestamp, username, data sources). Supports all
+#'        file formats supported by sntutils write() function based on the file
+#'        extension.
 #' @param method The string distance calculation method(s) to be used. Users
 #'        can specify one or more algorithms from the
 #'        \code{\link[stringdist]{stringdist}} package to compute
@@ -1236,6 +1277,11 @@ export_unmatched_data <- function(target_todo, unmatched_export_path,
 #' @param preserve_case Logical; if TRUE, preserves the original case of admin
 #'        names from the lookup data when returning matched values. If FALSE
 #'        (default), returns all admin names in uppercase as before.
+#' @param column_width Numeric; the maximum width (in characters) for each
+#'        column in the interactive menu. Controls how much text is displayed
+#'        before truncation. Default is 60 characters. Note that the actual
+#'        text display width is approximately 8 characters less to accommodate
+#'        number labels and truncation markers ("...").
 #'
 #' @details
 #' The function performs the following steps:
@@ -1266,39 +1312,47 @@ export_unmatched_data <- function(target_todo, unmatched_export_path,
 #'   subdistrict = c("AREA1", "AREA2", "AREA3")
 #' )
 #'
+#' # Dummy lookup data with correct spellings
+#' lookup_df <- data.frame(
+#'   country = c("ANGOLA", "ANGOLA", "UGANDA", "UGANDA", "ZAMBIA", "ZAMBIA"),
+#'   province = c("CABINDA", "CABINDA", "TESO", "TESO", "LUSAKA", "LUSAKA"),
+#'   district = c("BELIZE", "BUCO-ZAU", "BUKEDEA", "KUMI", "KAFUE", "LUSAKA"),
+#'   stringsAsFactors = FALSE
+#' )
+#'
 #' # Interactively clean geonames
 #' prep_geonames(
 #'   target_df,
+#'   lookup_df = lookup_df,
 #'   level0 = "country", level1 = "province",
 #'   level2 = "district",
-#'   interactive = FALSE # replace with TRUE for interactivty
+#'   interactive = FALSE # replace with TRUE for interactivity
 #' )
 #' }
 #'
-#' @importFrom rlang :=
-#' @importFrom foreach %dopar%
 #' @export
 prep_geonames <- function(
-    target_df,
-    lookup_df = NULL,
-    level0 = NULL,
-    level1 = NULL,
-    level2 = NULL,
-    level3 = NULL,
-    level4 = NULL,
-    cache_path = NULL,
-    unmatched_export_path = NULL,
-    method = "jw",
-    interactive = TRUE,
-    max_options = 200,
-    preserve_case = FALSE
+  target_df,
+  lookup_df = NULL,
+  level0 = NULL,
+  level1 = NULL,
+  level2 = NULL,
+  level3 = NULL,
+  level4 = NULL,
+  cache_path = NULL,
+  unmatched_export_path = NULL,
+  method = "jw",
+  interactive = TRUE,
+  max_options = 200,
+  preserve_case = FALSE,
+  column_width = 60
 ) {
   # Capture the names of the data frames at the beginning
-  target_df_name <- deparse(substitute(target_df))
-  lookup_df_name <- deparse(substitute(lookup_df))
-  
+  target_df_name <- paste(deparse(substitute(target_df)), collapse = "")
+  lookup_df_name <- paste(deparse(substitute(lookup_df)), collapse = "")
+
   # Validation -----------------------------------------------------------------
-  
+
   # Ensure higher levels cannot be used without corresponding lower levels
   if (!is.null(level1) && is.null(level0)) {
     cli::cli_abort("You cannot specify level1 without level0.")
@@ -1313,7 +1367,7 @@ prep_geonames <- function(
       "You cannot specify level3 without level0, level1, and level2."
     )
   }
-  
+
   # Prompt the user if using levels beyond level2 without a custom lookup_df
   if (is.null(lookup_df) && (!is.null(level3) || !is.null(level4))) {
     cli::cli_alert_warning(
@@ -1323,7 +1377,7 @@ prep_geonames <- function(
         "lookup_df is provided."
       )
     )
-    
+
     user_choice <- tolower(
       readline(
         paste0(
@@ -1335,7 +1389,7 @@ prep_geonames <- function(
         )
       )
     )
-    
+
     if (user_choice == "1") {
       cli::cli_alert_info(
         "Proceeding with cleaning up to level2 only. Ignoring level3 and level4."
@@ -1352,7 +1406,7 @@ prep_geonames <- function(
       return(invisible(NULL))
     }
   }
-  
+
   # Ensure lookup_df contains necessary columns if provided
   if (!is.null(lookup_df)) {
     required_columns <- NULL
@@ -1371,7 +1425,7 @@ prep_geonames <- function(
     if (!is.null(level4)) {
       required_columns <- c(required_columns, level4)
     }
-    
+
     missing_columns <- setdiff(required_columns, colnames(lookup_df))
     if (length(missing_columns) > 0) {
       cli::cli_abort(
@@ -1382,7 +1436,7 @@ prep_geonames <- function(
       )
     }
   }
-  
+
   # Ensure target_df contains necessary columns
   required_columns <- NULL
   if (!is.null(level0)) {
@@ -1400,7 +1454,7 @@ prep_geonames <- function(
   if (!is.null(level4)) {
     required_columns <- c(required_columns, level4)
   }
-  
+
   missing_columns <- setdiff(required_columns, colnames(target_df))
   if (length(missing_columns) > 0) {
     cli::cli_abort(
@@ -1410,7 +1464,7 @@ prep_geonames <- function(
       )
     )
   }
-  
+
   # Ensure method is supported
   supported_methods <- c(
     "jw",
@@ -1435,22 +1489,22 @@ prep_geonames <- function(
       )
     )
   }
-  
+
   # Ensure interactive is logical
   if (!is.logical(interactive)) {
     cli::cli_abort("interactive must be a logical value (TRUE or FALSE).")
   }
-  
+
   # Ensure cache_path is a valid file path if provided
   if (!is.null(cache_path) && !dir.exists(dirname(cache_path))) {
     cli::cli_abort("The directory for cache_path does not exist.")
   }
-  
+
   # Validation: Ensure lookup_df is not empty if provided
   if (!is.null(lookup_df) && nrow(lookup_df) == 0) {
     cli::cli_abort("The lookup_df is empty.")
   }
-  
+
   # Ensure level0, level1, level2, and level3 are valid column names
   if (!is.null(level0) && !(level0 %in% colnames(target_df))) {
     cli::cli_abort(paste("The column", level0, "is not in target_df."))
@@ -1467,30 +1521,22 @@ prep_geonames <- function(
   if (!is.null(level4) && !(level4 %in% colnames(target_df))) {
     cli::cli_abort(paste("The column", level4, "is not in target_df."))
   }
-  
+
   # Step 0: Setup target and lookup datasets -----------------------------------
-  
+
   # Get the internal shapefile if lookup data is not provided
   if (is.null(lookup_df)) {
-    lookup_df <- poliprep::shp_global
-    
-    if (!is.null(level0)) {
-      lookup_df <- dplyr::rename(lookup_df, !!level0 := ADM0_NAME)
-    }
-    if (!is.null(level1)) {
-      lookup_df <- dplyr::rename(lookup_df, !!level1 := ADM1_NAME)
-    }
-    if (!is.null(level2)) {
-      lookup_df <- dplyr::rename(lookup_df, !!level2 := ADM2_NAME)
-    }
-    if (!is.null(level3)) {
-      lookup_df <- dplyr::rename(lookup_df, !!level3 := ADM3_NAME)
-    }
-    if (!is.null(level4)) {
-      lookup_df <- dplyr::rename(lookup_df, !!level4 := ADM4_NAME)
-    }
+    cli::cli_abort(
+      c(
+        "No lookup data provided.",
+        "i" = "The internal WHO shapefile (shp_global) has been removed from this package.",
+        "i" = "Please provide your own lookup data using the 'lookup_df' parameter.",
+        "i" = "You can download WHO administrative boundaries from:",
+        "i" = "https://hub.arcgis.com/datasets/WHO::polio-administrative-boundaries"
+      )
+    )
   }
-  
+
   # Create the levels vector
   levels <- c(
     if (exists("level0")) level0 else NULL,
@@ -1499,19 +1545,19 @@ prep_geonames <- function(
     if (exists("level3")) level3 else NULL,
     if (exists("level4")) level4 else NULL
   )
-  
+
   # Store original case lookup values if preserve_case is TRUE
   lookup_case_mapping <- NULL
   if (preserve_case && !is.null(lookup_df)) {
     # Create a mapping from uppercase to original case for each level
     lookup_case_mapping <- list()
-    
+
     for (level in levels) {
       if (level %in% names(lookup_df)) {
         # Get unique mappings from uppercase to original case
         original_values <- lookup_df[[level]]
         uppercase_values <- .clean_utf8(original_values) |> toupper()
-        
+
         # Create mapping dataframe
         mapping_df <- data.frame(
           uppercase = uppercase_values,
@@ -1519,12 +1565,12 @@ prep_geonames <- function(
           stringsAsFactors = FALSE
         ) |>
           dplyr::distinct()
-        
+
         lookup_case_mapping[[level]] <- mapping_df
       }
     }
   }
-  
+
   # Clean UTF-8 encoding and ensure uppercase for matching
   target_df <- target_df |>
     dplyr::mutate(
@@ -1541,15 +1587,15 @@ prep_geonames <- function(
         ~ .clean_utf8(.x) |> toupper()
       )
     )
-  
+
   # Step 1: Configure cache if saved cache file exists available ---------------
-  
+
   if (!is.null(cache_path) && !file.exists(cache_path)) {
     # Alert the user about the missing cache file, including the path
     cli::cli_alert_info(
       paste0("The specified cache file '", cache_path, "' does not exist.")
     )
-    
+
     if (isTRUE(interactive)) {
       # Ask the user if they want to proceed and create a new cache file
       user_input <- readline(
@@ -1558,7 +1604,7 @@ prep_geonames <- function(
           " Proceed to create a new one? (yes/no): "
         )
       )
-      
+
       # Check the user's response
       if (!(tolower(user_input) %in% c("yes", "y"))) {
         cli::cli_alert_info("Exiting without creating a new cache file.")
@@ -1572,12 +1618,19 @@ prep_geonames <- function(
       )
     }
   }
-  
+
   # load saved cache file
   if (!is.null(cache_path) && file.exists(cache_path)) {
-    # load the cache file
-    saved_cache_df <- readRDS(cache_path)
-    
+    # load the cache file using sntutils read() function
+    saved_cache_df <- tryCatch(
+      read(cache_path),
+      error = function(e) {
+        cli::cli_abort(
+          "Failed to read cache file: {e$message}"
+        )
+      }
+    )
+
     # harmonise column names in case using old version of cache file
     saved_cache_df <- saved_cache_df |>
       dplyr::rename(level0_prepped = any_of("country_prepped")) |>
@@ -1597,12 +1650,12 @@ prep_geonames <- function(
         level3_prepped = if ("level3_prepped" %in% names(saved_cache_df)) {
           level3_prepped
         } else {
-          NA
+          NA_character_
         },
         level4_prepped = if ("level4_prepped" %in% names(saved_cache_df)) {
           level4_prepped
         } else {
-          NA
+          NA_character_
         },
       ) |>
       dplyr::select(dplyr::everything(), level3_prepped, level4_prepped)
@@ -1611,7 +1664,7 @@ prep_geonames <- function(
     saved_cache_df <- data.frame()
     target_todo <- target_df
   }
-  
+
   # if the cache file exists, merge it with the target data and replace
   # incorrect names with correct ones.
   if (!is.null(saved_cache_df) && nrow(saved_cache_df) > 0) {
@@ -1626,11 +1679,11 @@ prep_geonames <- function(
           by = stats::setNames("name_to_match", level0)
         ) |>
         dplyr::mutate(
-          !!level0 := stringr::str_replace_all(!!rlang::sym(level0), "\n", ""),
-          !!level0 := dplyr::coalesce(level0_prepped, .data[[level0]])
+          !!rlang::sym(level0) := stringr::str_replace_all(!!rlang::sym(level0), "\n", ""),
+          !!rlang::sym(level0) := dplyr::coalesce(level0_prepped, .data[[level0]])
         )
     }
-    
+
     if (!is.null(level1)) {
       target_df <- target_df |>
         dplyr::left_join(
@@ -1643,11 +1696,11 @@ prep_geonames <- function(
           )
         ) |>
         dplyr::mutate(
-          !!level1 := stringr::str_replace_all(!!rlang::sym(level1), "\n", ""),
-          !!level1 := dplyr::coalesce(level1_prepped, .data[[level1]])
+          !!rlang::sym(level1) := stringr::str_replace_all(!!rlang::sym(level1), "\n", ""),
+          !!rlang::sym(level1) := dplyr::coalesce(level1_prepped, .data[[level1]])
         )
     }
-    
+
     if (!is.null(level2)) {
       target_df <- target_df |>
         dplyr::left_join(
@@ -1665,11 +1718,11 @@ prep_geonames <- function(
           )
         ) |>
         dplyr::mutate(
-          !!level2 := stringr::str_replace_all(!!rlang::sym(level2), "\n", ""),
-          !!level2 := dplyr::coalesce(level2_prepped, .data[[level2]])
+          !!rlang::sym(level2) := stringr::str_replace_all(!!rlang::sym(level2), "\n", ""),
+          !!rlang::sym(level2) := dplyr::coalesce(level2_prepped, .data[[level2]])
         )
     }
-    
+
     if (!is.null(level3)) {
       target_df <- target_df |>
         dplyr::left_join(
@@ -1693,11 +1746,11 @@ prep_geonames <- function(
           )
         ) |>
         dplyr::mutate(
-          !!level3 := stringr::str_replace_all(!!rlang::sym(level3), "\n", ""),
-          !!level3 := dplyr::coalesce(level3_prepped, .data[[level3]])
+          !!rlang::sym(level3) := stringr::str_replace_all(!!rlang::sym(level3), "\n", ""),
+          !!rlang::sym(level3) := dplyr::coalesce(level3_prepped, .data[[level3]])
         )
     }
-    
+
     if (!is.null(level4)) {
       target_df <- target_df |>
         dplyr::left_join(
@@ -1723,29 +1776,29 @@ prep_geonames <- function(
           )
         ) |>
         dplyr::mutate(
-          !!level4 := stringr::str_replace_all(!!rlang::sym(level4), "\n", ""),
-          !!level4 := dplyr::coalesce(level4_prepped, .data[[level4]])
+          !!rlang::sym(level4) := stringr::str_replace_all(!!rlang::sym(level4), "\n", ""),
+          !!rlang::sym(level4) := dplyr::coalesce(level4_prepped, .data[[level4]])
         )
     }
-    
+
     # remove prepped columns
     target_df <- target_df |>
       dplyr::select(-matches("_prepped$"))
   }
-  
+
   # Step 2: Filter out for those where there is a match ------------------------
-  
+
   # get the original data (with cache applied if it was loaded)
   orig_df <- target_df
-  
+
   # Dynamically filter for missing geolocations
   filter_na_expr <- purrr::map(levels, ~ rlang::expr(is.na(!!.x)))
   target_df_na <- target_df |> dplyr::filter(!!!filter_na_expr)
-  
+
   # Dynamically filter for non-missing geolocations
   filter_not_na_expr <- purrr::map(levels, ~ rlang::expr(!is.na(!!.x)))
   target_df <- target_df |> dplyr::filter(!!!filter_not_na_expr)
-  
+
   # dynamically construct the long geonames on target data
   target_df <- construct_geo_names(
     target_df,
@@ -1763,20 +1816,20 @@ prep_geonames <- function(
     level3,
     level4
   )
-  
+
   # filter to matched rows
   target_done <- target_df |>
     dplyr::filter(
       (long_geo %in%
-         unique(lookup_df[["long_geo"]]))
+        unique(lookup_df[["long_geo"]]))
     )
-  
+
   # reduce down to only unmatched rows
   target_todo <- target_df |>
     dplyr::filter(
       !(long_geo %in% unique(lookup_df[["long_geo"]]))
     )
-  
+
   calculate_match_stats(
     target_df,
     lookup_df,
@@ -1786,27 +1839,27 @@ prep_geonames <- function(
     level3,
     level4
   )
-  
+
   # Early return with finalised_df
   if (nrow(target_todo) == 0) {
     cli::cli_alert_success(
       "All records matched; process completed. Exiting..."
     )
-    
+
     # Apply case mapping if preserve_case is TRUE
     if (preserve_case) {
       orig_df <- apply_case_mapping(orig_df, lookup_case_mapping, levels)
     }
-    
+
     return(orig_df)
   }
-  
+
   # return if non-interactive.
   if (!interactive) {
     cli::cli_alert_success(
       "In non-interactive mode. Exiting after matching with cache..."
     )
-    
+
     # Export unmatched data before returning in non-interactive mode
     if (!is.null(unmatched_export_path) && nrow(target_todo) > 0) {
       # Tag the target_todo with source names
@@ -1815,7 +1868,7 @@ prep_geonames <- function(
           target_data = target_df_name,
           lookup_data = lookup_df_name
         )
-      
+
       export_unmatched_data(
         target_todo_tagged,
         unmatched_export_path,
@@ -1826,70 +1879,70 @@ prep_geonames <- function(
         level4
       )
     }
-    
+
     # Apply case mapping if preserve_case is TRUE
     if (preserve_case) {
       orig_df <- apply_case_mapping(orig_df, lookup_case_mapping, levels)
     }
-    
+
     return(orig_df)
   }
-  
+
   cli::cli_alert_info(
     "Partial match completed. There are still matches to be made."
   )
-  
+
   user_input <-
     readline("Would you like to do interactive matching? (yes/no):")
-  
+
   if (!(tolower(user_input) %in% c("yes", "y"))) {
     cli::cli_alert_info(
       "Exiting without interactive matching..."
     )
-    
+
     # Apply case mapping if preserve_case is TRUE
     if (preserve_case) {
       orig_df <- apply_case_mapping(orig_df, lookup_case_mapping, levels)
     }
-    
+
     return(orig_df)
   }
-  
+
   # Step 3: String distance matching in interactivity --------------------------
-  
+
   # initialize empty lists to store results
   unmatched_df_group <- list()
   cleaned_dfs <- list()
-  
+
   # Initialize flag variable
   skip_to_end <- FALSE
-  
+
   for (level in levels) {
     top_res_list <- list()
     replacement_df <- NULL
-    
+
     # Check if the current level has a hierarchical parent
     if (level %in% c(levels[2], levels[3], levels[4], levels[5])) {
       # Set up the grouping level (previous level in hierarchy)
       grouping_level <- levels[which(levels == level) - 1]
-      
+
       for (group in unique(target_todo[[grouping_level]])) {
         if (!(group %in% unique(lookup_df[[grouping_level]]))) {
           skip_to_end <- TRUE
           break
         }
-        
+
         lookup_df_group <- lookup_df |>
           dplyr::filter(.data[[grouping_level]] == group)
-        
+
         unmatched_df_group <- target_todo |>
           dplyr::filter(.data[[grouping_level]] == group) |>
           dplyr::filter(!(.data[[level]] %in% unique(lookup_df_group[[level]])))
-        
+
         if (nrow(unmatched_df_group) == 0) {
           next
         }
-        
+
         # Dynamically create a long_geo from the previous levels
         if (level == levels[2]) {
           long_geo_group <- paste(
@@ -1920,7 +1973,7 @@ prep_geonames <- function(
         } else {
           long_geo_group <- group
         }
-        
+
         top_res <-
           calculate_string_distance(
             unmatched_df_group[[level]],
@@ -1935,23 +1988,23 @@ prep_geonames <- function(
           dplyr::select(name_to_match, matched_names) |>
           dplyr::ungroup() |>
           dplyr::mutate(long_geo = long_geo_group)
-        
+
         top_res_list[[group]] <- top_res
       }
-      
+
       if (skip_to_end) {
         break
       }
-      
+
       top_res <- do.call(rbind, top_res_list)
     } else {
       unmatched_df_group <- target_todo |>
         dplyr::filter(!(.data[[level]] %in% unique(lookup_df[[level]])))
-      
+
       if (nrow(unmatched_df_group) == 0) {
         next
       }
-      
+
       top_res <-
         calculate_string_distance(
           unmatched_df_group[[level]],
@@ -1967,16 +2020,17 @@ prep_geonames <- function(
         dplyr::ungroup() |>
         dplyr::mutate(long_geo = name_to_match)
     }
-    
+
     if (!is.null(top_res) && nrow(top_res) > 0) {
       cli::cli_alert_info("Handling user interaction for level: {level}")
       replacement_df <- handle_user_interaction(
         input_data = top_res,
         levels = levels,
         level = level,
-        max_options = max_options
+        max_options = max_options,
+        column_width = column_width
       )
-      
+
       if (!is.null(replacement_df) && nrow(replacement_df) > 0) {
         cleaned_dfs[[level]] <- replacement_df
         cli::cli_alert_success("Replacements made for level: {level}")
@@ -1984,20 +2038,20 @@ prep_geonames <- function(
         cli::cli_alert_warning("No replacements made for level: {level}")
       }
     }
-    
+
     # Always update target_todo, even if no replacements were made
     if (!is.null(replacement_df) && nrow(replacement_df) > 0) {
       target_todo <- target_todo |>
         dplyr::left_join(
           replacement_df |>
             dplyr::select(
-              !!level := name_to_match,
+              !!rlang::sym(level) := name_to_match,
               replacement
             ),
           by = level
         ) |>
         dplyr::mutate(
-          !!level := ifelse(
+          !!rlang::sym(level) := ifelse(
             is.na(replacement),
             .data[[level]],
             replacement
@@ -2005,7 +2059,7 @@ prep_geonames <- function(
         ) |>
         dplyr::select(-replacement)
     }
-    
+
     target_todo <- construct_geo_names(
       target_todo,
       level0,
@@ -2014,15 +2068,15 @@ prep_geonames <- function(
       level3,
       level4
     )
-    
+
     if (skip_to_end) {
       cli::cli_alert_danger("Skipping to end due to unmatched higher level")
       break
     }
   }
-  
+
   # Step 4: clean up the cache file and save -----------------------------------
-  
+
   if (length(cleaned_dfs) > 0 && any(sapply(cleaned_dfs, nrow) > 0)) {
     # clean up the cache df
     suppressWarnings(
@@ -2070,7 +2124,7 @@ prep_geonames <- function(
         # add username
         dplyr::mutate(name_of_creator = get_user_identity())
     )
-    
+
     # combine cleaned data frames
     final_cache_dfs <-
       dplyr::bind_rows(saved_cache_df, cleaned_cache_joined) |>
@@ -2118,7 +2172,7 @@ prep_geonames <- function(
       dplyr::arrange(created_time) |>
       dplyr::distinct(longname_to_match, .keep_all = TRUE) |>
       dplyr::select(-longname_to_match)
-    
+
     # file saving
     handle_file_save(final_cache_dfs, default_save_path = cache_path)
   } else {
@@ -2126,12 +2180,12 @@ prep_geonames <- function(
       "No cleanings were made. Cache will not be updated."
     )
   }
-  
+
   # Step 5: Combine the cleaned data frames ------------------------------------
-  
+
   finalised_df <- dplyr::bind_rows(target_done, target_todo, target_df_na) |>
     dplyr::select(-long_geo)
-  
+
   # get stats
   calculate_match_stats(
     finalised_df,
@@ -2142,7 +2196,7 @@ prep_geonames <- function(
     level3,
     level4
   )
-  
+
   # Step 6: Export unmatched data after all matching is complete ---------------
   # Export the final unmatched data (after interactive matching) if requested
   if (!is.null(unmatched_export_path) && nrow(target_todo) > 0) {
@@ -2154,7 +2208,7 @@ prep_geonames <- function(
         target_data = target_df_name,
         lookup_data = lookup_df_name
       )
-    
+
     export_unmatched_data(
       target_todo_tagged,
       unmatched_export_path,
@@ -2165,9 +2219,9 @@ prep_geonames <- function(
       level4
     )
   }
-  
+
   gc() # clean up memory
-  
+
   # Apply case mapping if preserve_case is TRUE
   if (preserve_case) {
     finalised_df <- apply_case_mapping(
@@ -2176,7 +2230,7 @@ prep_geonames <- function(
       levels
     )
   }
-  
+
   # return the final data frame
   finalised_df
 }
@@ -2236,7 +2290,7 @@ impute_higher_admin <- function(target_df,
                                 lookup_higher_col) {
   target_df <- target_df |>
     dplyr::mutate(
-      !!target_higher_col := dplyr::recode(
+      !!rlang::sym(target_higher_col) := dplyr::recode(
         .data[[target_lower_col]],
         !!!stats::setNames(
           lookup_df[[lookup_higher_col]],
