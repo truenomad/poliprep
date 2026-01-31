@@ -46,8 +46,8 @@ The function creates the following hierarchy:
 └── 1.6_final/                       (final analysis-ready datasets)
 }\if{html}{\out{</div>}}
 
-Each leaf folder (except \verb{1.6_final}) contains \verb{raw/} and \verb{processed/}
-subfolders to separate original data from cleaned data.
+Each leaf folder (except \verb{1.6_final} and \verb{1.1e_cache_files}) contains
+\verb{raw/} and \verb{processed/} subfolders. Cache is flat for intermediate files.
 }
 
 \examples{

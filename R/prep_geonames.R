@@ -919,6 +919,25 @@ handle_user_interaction <- function(input_data, levels, level,
   }
 }
 
+#' Clean UTF-8 Encoding for Geographic Names
+#'
+#' Converts text to UTF-8 encoding and removes special characters that may
+#' cause matching issues, keeping only letters, numbers, spaces, hyphens,
+#' and underscores.
+#'
+#' @param x Character vector to clean
+#' @return Character vector with cleaned UTF-8 text
+#' @keywords internal
+#' @noRd
+.clean_utf8 <- function(x) {
+  x |>
+    stringi::stri_enc_toutf8(validate = FALSE) |>
+    stringi::stri_replace_all_regex(
+      "[^\\p{L}\\p{N}\\s\\-\\_]",
+      ""
+    )
+}
+
 #' Construct Long Geographic Names
 #'
 #' This function creates a composite geographic identifier by concatenating
@@ -1506,20 +1525,20 @@ prep_geonames <- function(
     }
   }
   
-  # Ensure administrative names are uppercase for matching
+  # Clean UTF-8 encoding and ensure uppercase for matching
   target_df <- target_df |>
     dplyr::mutate(
       dplyr::across(
         dplyr::any_of(levels),
-        toupper
+        ~ .clean_utf8(.x) |> toupper()
       )
     )
-  
+
   lookup_df <- lookup_df |>
     dplyr::mutate(
       dplyr::across(
         dplyr::any_of(levels),
-        toupper
+        ~ .clean_utf8(.x) |> toupper()
       )
     )
   

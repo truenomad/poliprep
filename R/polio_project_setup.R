@@ -32,8 +32,8 @@
 #' └── 1.6_final/                       (final analysis-ready datasets)
 #' ```
 #'
-#' Each leaf folder (except `1.6_final`) contains `raw/` and `processed/`
-#' subfolders to separate original data from cleaned data.
+#' Each leaf folder (except `1.6_final` and `1.1e_cache_files`) contains
+#' `raw/` and `processed/` subfolders. Cache is flat for intermediate files.
 #'
 #' @param base_path Character. Root directory for the data folders.
 #'   Default is current directory.
@@ -46,6 +46,9 @@
 #' create_polio_data_structure(tmp)
 #' fs::dir_tree(fs::path(tmp, "01_data"), recurse = 1)
 create_polio_data_structure <- function(base_path = ".") {
+  # folders that should NOT have raw/processed subfolders
+  no_subfolders <- c("1.1e_cache_files")
+
   data_structure <- list(
     "1.1_foundational" = c(
       "1.1a_admin_boundaries",
@@ -86,11 +89,15 @@ create_polio_data_structure <- function(base_path = ".") {
       fs::dir_create(fs::path(domain_path, "raw"))
       fs::dir_create(fs::path(domain_path, "processed"))
     } else {
-      # create raw/processed in each subfolder
+      # create raw/processed in each subfolder (except cache)
       for (entry in entries) {
         path_final <- fs::path(domain_path, entry)
-        fs::dir_create(fs::path(path_final, "raw"))
-        fs::dir_create(fs::path(path_final, "processed"))
+        if (basename(entry) %in% no_subfolders) {
+          fs::dir_create(path_final)
+        } else {
+          fs::dir_create(fs::path(path_final, "raw"))
+          fs::dir_create(fs::path(path_final, "processed"))
+        }
       }
     }
   }
