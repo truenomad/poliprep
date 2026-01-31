@@ -1,7 +1,9 @@
 # <img src="man/figures/logo.png" align="right" height="139" alt="" />
 
 <!-- badges: start -->
-  [![R-CMD-check](https://github.com/truenomad/poliprep/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/truenomad/poliprep/actions/workflows/R-CMD-check.yaml)  [![CodeFactor](https://www.codefactor.io/repository/github/truenomad/poliprep/badge)](https://www.codefactor.io/repository/github/truenomad/poliprep) [![codecov](https://codecov.io/gh/truenomad/poliprep/graph/badge.svg?token=PCYAMB2S6Y)](https://codecov.io/gh/truenomad/poliprep)
+
+[![R-CMD-check](https://github.com/truenomad/poliprep/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/truenomad/poliprep/actions/workflows/R-CMD-check.yaml) [![CodeFactor](https://www.codefactor.io/repository/github/truenomad/poliprep/badge)](https://www.codefactor.io/repository/github/truenomad/poliprep) [![codecov](https://codecov.io/gh/truenomad/poliprep/graph/badge.svg?token=PCYAMB2S6Y)](https://codecov.io/gh/truenomad/poliprep)
+
 <!-- badges: end -->
 
 # poliprep
@@ -13,6 +15,7 @@
 The package offers a number of functions for various tasks, including importing and exporting data, pulling data from relevant APIs, data processing and cleaning, as well as performing validations and checks. It also features the capability to generate reports or scorecards highlighting areas of concern identified during the validation process.
 
 ## :wrench: Installation
+
 The package is yet to be available on Cran, but can be installed using `devtools` in R. The steps are as follows:
 
 ```r
@@ -31,7 +34,7 @@ devtools::install_github("truenomad/poliprep")
 
 Inspired by `rio`, the read function allows you to read data from a wide range of file formats. Additional reading options specific to each format can be passed through the ellipsis (...) argument. Similarly, the save function provides a simple way to export data into various formats.
 
-``` r
+```r
 # Load the poliprep package
 library(poliprep)
 
@@ -64,7 +67,6 @@ save(
 
 The `prep_mdb_table_extract` function extracts a specific table from multiple .mdb files located in a specified folder. This is particularly useful when working with datasets stored in Microsoft Access databases that need to be aggregated or analyzed collectively.
 
-
 ```r
 # Example setup
 mdb_folder <- "path/to/mdb_folder"
@@ -81,33 +83,33 @@ To securely set your access token in the R environment, you can add it to your .
 
 Where the key is stored depends on the environment you’re working in—user or project. If you’re working within an RStudio project (which is generally recommended), you need to specify the scope as "project" so that the key is saved within your environment. Otherwise the default is 'user'.
 
-``` r
+```r
 usethis::edit_r_environ(scope = "project")
 
 # add the following line to your .Renviron file:
-MY_ONA_TOKEN = "your_access_token" 
+MY_ONA_TOKEN = "your_access_token"
 ```
 
 After adding the token, you can retrieve it in your code using `Sys.getenv()`:
 
-``` r
+```r
 # Set up your token as an object for later use
 api_token <- Sys.getenv("MY_ONA_TOKEN")
 ```
 
 #### `get_ona_data` for Downloading Data from ONA
 
-Before downloading any data from ONA using `poliprep`, you can double-check that your API token is working and verify the available form IDs accessible with your API token. The `prep_ona_data_endpoints` function helps with this:
+Before downloading any data from ONA using `poliprep`, you can double-check that your API token is working and verify the available form IDs accessible with your API token. The `available_ona_forms` function helps with this:
 
-``` r
-available_froms <- prep_ona_data_endpoints(
+```r
+available_froms <- available_ona_forms(
                      api_token = Sys.getenv("MY_ONA_TOKEN")
                      )
 ```
 
 Once you have a working API token and the form IDs of interest, you can seamlessly retrieve data from a specified form on the ONA API using the `get_ona_data` function.
 
-``` r
+```r
 data_ona <- get_ona_data(
                base_url = "https://api.whonghub.org", form_id = 7178,
                api_token = Sys.getenv("MY_ONA_TOKEN"))
@@ -115,7 +117,7 @@ data_ona <- get_ona_data(
 
 The function also allows you to download selected columns using the `selected_columns` paramater, which takes vector(s).
 
-``` r
+```r
 data_ona <- get_ona_data(
               base_url = "https://api.whonghub.org", form_ids = 7178,
               api_token = Sys.getenv("MY_ONA_TOKEN"),
@@ -125,7 +127,7 @@ data_ona <- get_ona_data(
 
 You can also filter your dataset before downloading. There are two parameters to do this, `logical_filters` and `comparison_filters`. To select specific elements in a column, you can now use `logical_filters`. For filtering ranges, you can use `comparison_filters`, which always starts with a tilde (\~) and then the conditions are written in a standard R syntax. See below to see how this can be done:
 
-``` r
+```r
 data_ona <- get_ona_data(
               base_url = "https://api.whonghub.org", form_ids = 7178,
               api_token = Sys.getenv("MY_ONA_TOKEN"),
@@ -143,7 +145,7 @@ In cases where you need to download data from multiple ONA forms simultaneously,
 
 ```r
 data_ona2 <- get_ona_data(
-  form_ids = c(7131, 7178), 
+  form_ids = c(7131, 7178),
   selected_columns = c("states", "_duration"),
   api_token = Sys.getenv("MY_ONA_TOKEN"),
   logical_filters = list(states = c("BORNO", "KANO")),
@@ -156,13 +158,14 @@ data_ona2 <- get_ona_data(
 When working with datasets from multiple ONA forms, you may prefer to fetch only new and necessary rows rather than repeatedly downloading all data. The `get_updated_ona_data` function in `poliprep` streamlines this process by enabling you to update existing datasets with new rows from specified forms, ensuring data continuity while avoiding duplication. It is particularly effective for managing updates across multiple forms, such as identical surveys conducted in different administrative regions, and includes an optional logging feature to track updates and maintain an audit trail of data changes.
 
 **Key Considerations:**
--   The function supports downloading data from multiple form IDs simultaneously.
--   Do not change parameters for the filters (e.g., logical_filters or comparison_filters) when updating, as this may result in mismatched datasets.
--   Specify the file path where the previously downloaded data is stored. If this is the first run, the function downloads all matching data and saves it to the given location.
 
-``` r
+- The function supports downloading data from multiple form IDs simultaneously.
+- Do not change parameters for the filters (e.g., logical_filters or comparison_filters) when updating, as this may result in mismatched datasets.
+- Specify the file path where the previously downloaded data is stored. If this is the first run, the function downloads all matching data and saves it to the given location.
+
+```r
 get_updated_ona_data(
-  form_ids = c(7131, 7178), 
+  form_ids = c(7131, 7178),
   selected_columns = c("states", "_duration"),
   api_token = Sys.getenv("MY_ONA_TOKEN"),
   logical_filters = list(states = c("BORNO", "KANO")),
@@ -174,8 +177,7 @@ get_updated_ona_data(
 
 #### `prep_match_names` for Matching Naming Conventions Between Dataframes
 
-The `prep_match_names` function standardizes variable names in a target dataframe to match the naming conventions in a reference dataframe. This is especially useful when integrating datasets from different sources that use varying naming conventions, such as CamelCase and snake_case. 
-
+The `prep_match_names` function standardizes variable names in a target dataframe to match the naming conventions in a reference dataframe. This is especially useful when integrating datasets from different sources that use varying naming conventions, such as CamelCase and snake_case.
 
 ```r
 ref_dataframe <- tibble::tibble(
@@ -188,6 +190,7 @@ target_dataframe <- tibble::tibble(
   nameofcapital = c("Juba", "Nairobi", "Addis Ababa", "Bangui")
 )
 ```
+
 Check variable names before matching:
 
 ```r
@@ -197,7 +200,7 @@ all(names(ref_dataframe) == names(target_dataframe))
 #> [1] FALSE
 ```
 
-Apply the function to match the column names of `target_dataframe` to be the same 
+Apply the function to match the column names of `target_dataframe` to be the same
 as those of `ref_dataframe`:
 
 ```r
@@ -220,8 +223,7 @@ all(names(ref_dataframe) == names(target_dataframe))
 
 #### `prep_match_datatypes` for Matching Data Types Between Dataframes
 
-The `prep_match_datatypes` function aligns the data types of columns in a target dataframe to match those in a reference dataframe. This is especially useful when working with datasets from different sources that may have inconsistent data types, such as characters being stored as integers or vice versa. 
-
+The `prep_match_datatypes` function aligns the data types of columns in a target dataframe to match those in a reference dataframe. This is especially useful when working with datasets from different sources that may have inconsistent data types, such as characters being stored as integers or vice versa.
 
 ```r
 ref_df <- tibble::tibble(
@@ -236,6 +238,7 @@ target_df <- tibble::tibble(
   numeric_col = c("1.1", "2.2", "3.3") # Should be numeric
 )
 ```
+
 Check column data types before matching:
 
 ```r
@@ -243,10 +246,10 @@ sapply(target_df, class)
 
 #> $integer_col
 #> [1] "character"
-#> 
+#>
 #> $character_col
 #> [1] "integer"
-#> 
+#>
 #> $numeric_col
 #> [1] "character"
 ```
@@ -263,13 +266,14 @@ Verify variable names after matching
 sapply(matched_df, class)
 #> $integer_col
 #> [1] "integer"
-#> 
+#>
 #> $character_col
 #> [1] "character"
-#> 
+#>
 #> $numeric_col
 #> [1] "numeric"
 ```
+
 Confirm the data types of `target_df` now match those of `ref_df`:
 
 ```r
@@ -282,7 +286,7 @@ all(sapply(ref_df, class) == sapply(matched_df, class))
 #### `prep_geonames` for Interactive Admin Name Cleaning and Matching
 
 The `prep_geonames` function combines algorithmic matching with user interactivity to clean and standardize administrative names. It uses string distance calculations for initial matching and allows users to make final corrections interactively, with all decisions saved for future use. The function supports a user-provided lookup dataset as a reference or defaults to internal WHO geonames data if no lookup is provided. Additionally, it supports hierarchical stratification across up to six administrative levels. Cached user decisions enhance consistency and efficiency in subsequent sessions. For users who prefer to run the code without interactivity, the function can be executed with `interactive = FALSE`.
- 
+
 ```r
 target_df <- data.frame(
   country = c("ANGOLA", "UGA", "ZAMBIA"),
@@ -298,6 +302,7 @@ cleaned_df <- prep_geonames(
   interactive = TRUE
 )
 ```
+
 Here is a short video to demonstrate the full interactivity of `prep_geonames`:
 
 https://github.com/user-attachments/assets/ffa69a93-a982-43c4-9673-1165f997fd96
@@ -343,11 +348,9 @@ parsed_df$iso8601
 #> [1] "2021-03-20" "2022-11-05" "2023-06-15" "2020-01-01"
 ```
 
-
 #### `categorize_biannual` for Categorizing Dates into Biannual Intervals
 
 The `categorize_biannual` function assigns dates in a dataset to non-overlapping six-month intervals, starting from the earliest date in the dataset and working backward from the latest date. This is particularly useful for summarizing or grouping data by biannual time periods.
-
 
 ```r
 # Example setup
@@ -373,15 +376,14 @@ categorized_data
 #> 3 2022-01-15 Jan 22 / Jun 22
 ```
 
-
 #### `validate_date` for Checking and Validating Date Columns
 
 ```r
 # Example setup
 data <- data.frame(
-  country = c("Rwanda", "Burundi", "Ethiopia", "Zambia", "Zambia", 
+  country = c("Rwanda", "Burundi", "Ethiopia", "Zambia", "Zambia",
               "Chad", "Niger", "Angola"),
-  date = c("2023-06-15", "2024-07-20", NA, "1999-12-31", "2025-08-22", 
+  date = c("2023-06-15", "2024-07-20", NA, "1999-12-31", "2025-08-22",
            "2020/23/10", "2020-02-29", "2019-02-29")
 )
 ```
