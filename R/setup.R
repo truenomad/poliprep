@@ -40,18 +40,18 @@ install_suggested_packages <- function(libname = NULL, pkgname = NULL) {
     "withr", "stringdist", "crayon", "glue",
     "stringi", "httpcode", "yaml", "scales",
     "webshot", "gt", "parzer", "readr",
-    "zoo", "epoxy", "officer", "ggplot2",
+    "zoo", "officer", "ggplot2",
     "progress", "filelock", "lifecycle", "here"
   )
-  
+
   missing_pkgs <- suggested_pkgs[!(
     suggested_pkgs %in% utils::installed.packages()[, "Package"])]
-  
+
   if (length(missing_pkgs) > 0) {
     cli::cli_h2("Package Installation Required")
     cli::cli_text("The following packages are missing:")
     cli::cli_ol(paste0("{.pkg ", missing_pkgs, "}"))
-    
+
     # Handle non-interactive sessions
     if (!interactive()) {
       cli::cli_alert_warning(
@@ -59,17 +59,17 @@ install_suggested_packages <- function(libname = NULL, pkgname = NULL) {
       )
       return(invisible(NULL))
     }
-    
+
     # Prompt user for installation
     user_choice <- readline(
       prompt = cli::col_blue(
         "Do you want to install all missing packages? (y/n): "
       )
     )
-    
+
     if (tolower(user_choice) == "y") {
       cli::cli_alert_success("Installing missing packages...")
-      
+
       # Ensure remotes is installed
       if (!requireNamespace("remotes", quietly = TRUE)) {
         tryCatch({
@@ -81,7 +81,7 @@ install_suggested_packages <- function(libname = NULL, pkgname = NULL) {
           invisible(NULL)
         })
       }
-      
+
       # Install CRAN packages
       cran_pkgs <- missing_pkgs[missing_pkgs != "optout"]
       if (length(cran_pkgs) > 0) {
@@ -96,7 +96,7 @@ install_suggested_packages <- function(libname = NULL, pkgname = NULL) {
           })
         }
       }
-      
+
       # Install GitHub packages
       if ("esri2sf" %in% missing_pkgs) {
         tryCatch({
@@ -107,7 +107,7 @@ install_suggested_packages <- function(libname = NULL, pkgname = NULL) {
           ))
         })
       }
-      
+
       cli::cli_alert_success("Installation of all packages complete.")
     } else {
       cli::cli_alert_warning(paste0(
@@ -118,7 +118,7 @@ install_suggested_packages <- function(libname = NULL, pkgname = NULL) {
   } else {
     cli::cli_alert_success("All suggested packages are already installed.")
   }
-  
+
   invisible(NULL)
 }
 
@@ -157,17 +157,17 @@ install_suggested_packages <- function(libname = NULL, pkgname = NULL) {
 #'
 #' @export
 init_folders <- function(base_path = here::here()) {
-  
+
   # Conditional loading for packages
   required_packages <- c(
     "here"
   )
-  
+
   missing_packages <- required_packages[!sapply(
     required_packages, requireNamespace,
     quietly = TRUE
   )]
-  
+
   if (length(missing_packages) > 0) {
     stop(
       paste0(
@@ -177,7 +177,7 @@ init_folders <- function(base_path = here::here()) {
       call. = FALSE
     )
   }
-  
+
   # Define relative directories
   relative_dirs <- c(
     "01_data/processed",
@@ -188,7 +188,7 @@ init_folders <- function(base_path = here::here()) {
     "03_outputs/3c_powerpoint_slides",
     "03_outputs/3d_model_outputs"
   )
-  
+
   # Construct full paths and create directories
   for (relative_dir in relative_dirs) {
     dir_path <- normalizePath(file.path(base_path, relative_dir),
@@ -200,6 +200,6 @@ init_folders <- function(base_path = here::here()) {
       cli::cli_alert_warning("Exists: {dir_path}")
     }
   }
-  
+
   cli::cli_alert_success("Folder structure created successfully.")
 }

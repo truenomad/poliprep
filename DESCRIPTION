@@ -43,7 +43,8 @@ Imports:
   purrr,
   archive,
   RODBC,
-  geosphere
+  geosphere,
+  rprojroot
 Suggests:
     httr2,
     xml2,
@@ -64,7 +65,6 @@ Suggests:
     parzer,
     readr,
     zoo,
-    epoxy,
     officer,
     ggplot2,
     optout,
@@ -73,10 +73,11 @@ Suggests:
     lifecycle,
     here,
     remotes,
-    terra
+    terra,
+    qs2
 Config/testthat/edition: 3
 Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.3.2
+RoxygenNote: 7.3.3
 LazyDataCompression: xz
