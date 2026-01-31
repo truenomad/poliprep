@@ -14,31 +14,68 @@ ensure_pngquant <- function(verbosity = FALSE) {
   is_exec <- function(p) {
     nzchar(p) && file.exists(p) && file.access(p, 1) == 0
   }
-  
+
   # 1) honor env var
   env_path <- Sys.getenv("PNGQUANT_PATH", unset = "")
   if (is_exec(env_path)) {
     return(normalizePath(env_path))
   }
-  
-  # 2) on PATH already
-  on_path <- Sys.which("pngquant")
+
+  # 2) on PATH already - try multiple detection methods
+  # Try Sys.which() first, but handle potential failures
+  on_path <- tryCatch(
+    {
+      result <- Sys.which("pngquant")
+      if (nzchar(result)) result else ""
+    },
+    error = function(e) ""
+  )
+
+  # If Sys.which() failed or returned empty, try 'which' command directly
+  if (!is_exec(on_path)) {
+    on_path <- tryCatch(
+      {
+        result <- system("which pngquant 2>/dev/null", intern = TRUE)
+        if (length(result) > 0 && nzchar(result[1])) result[1] else ""
+      },
+      error = function(e) "",
+      warning = function(w) ""
+    )
+  }
+
+  # If still not found, check common installation paths
+  if (!is_exec(on_path)) {
+    common_paths <- c(
+      "/usr/local/bin/pngquant",
+      "/usr/bin/pngquant",
+      "/opt/homebrew/bin/pngquant",  # Apple Silicon Macs
+      "/opt/local/bin/pngquant"       # MacPorts
+    )
+
+    for (path in common_paths) {
+      if (is_exec(path)) {
+        on_path <- path
+        break
+      }
+    }
+  }
+
   if (is_exec(on_path)) {
     return(normalizePath(on_path))
   }
-  
+
   # 3) windows: download official zip to a user-writable dir
   if (.Platform$OS.type == "windows") {
     tools_dir <- file.path(tempdir(), "pngquant_tools")
     dir.create(tools_dir, recursive = TRUE, showWarnings = FALSE)
-    
+
     zip_url <- "https://pngquant.org/pngquant-windows.zip"
     zip_file <- file.path(tools_dir, "pngquant-windows.zip")
-    
+
     if (verbosity) {
       cli::cli_alert_info("downloading pngquant (windows zip)...")
     }
-    
+
     utils::download.file(
       url = zip_url,
       destfile = zip_file,
@@ -46,7 +83,7 @@ ensure_pngquant <- function(verbosity = FALSE) {
       quiet = !verbosity
     )
     utils::unzip(zip_file, exdir = tools_dir)
-    
+
     cand <- list.files(
       tools_dir,
       pattern = "^pngquant\\.exe$",
@@ -59,7 +96,7 @@ ensure_pngquant <- function(verbosity = FALSE) {
       }
       return(NULL)
     }
-    
+
     exe <- normalizePath(cand[1])
     Sys.setenv(PATH = paste(dirname(exe), Sys.getenv("PATH"), sep = ";"))
     if (verbosity) {
@@ -67,7 +104,7 @@ ensure_pngquant <- function(verbosity = FALSE) {
     }
     return(exe)
   }
-  
+
   # 4) macos/linux: rely on system package managers
   if (verbosity) {
     cli::cli_bullets(c(
@@ -120,7 +157,7 @@ compression_stats <- function(filename, init_size, final_size,
                               verbosity = FALSE) {
   savings <- init_size - final_size
   pct_saved <- round(100 * savings / init_size, 2)
-  
+
   # Format sizes in appropriate units (MB, KB, bytes)
   format_size <- function(size) {
     if (size >= 1048576) { # 1MB in bytes
@@ -131,21 +168,21 @@ compression_stats <- function(filename, init_size, final_size,
       paste0(size, " bytes")
     }
   }
-  
+
   result <- list(
     initial_size = init_size,
     final_size = final_size,
     bytes_saved = savings,
     percent_saved = pct_saved
   )
-  
+
   if (verbosity) {
     cli::cli_h2("Compression Summary")
-    
+
     cli::cli_alert_success(
       paste("Successfully compressed:", crayon::blue(filename))
     )
-    
+
     cli::cli_alert_info(
       paste(
         "Total compression:",
@@ -153,7 +190,7 @@ compression_stats <- function(filename, init_size, final_size,
         sprintf("(%.2f%% saved)", pct_saved)
       )
     )
-    
+
     cli::cli_bullets(c(
       "i" = if (pct_saved > 50) {
         "Excellent compression!"
@@ -163,14 +200,14 @@ compression_stats <- function(filename, init_size, final_size,
         "Minimal compression"
       }
     ))
-    
+
     cli::cli_h3("File Size")
     cli::cli_bullets(c(
       "\u2022" = paste("Before compression:", format_size(init_size)),
       "\u2022" = paste("After compression:", format_size(final_size))
     ))
   }
-  
+
   invisible(result)
 }
 
@@ -231,7 +268,7 @@ pngquant_compress_single_file <- function(pngquant_path, file,
                                           verbosity = FALSE) {
   # Get initial file size before compression
   init_size <- file.info(file)$size
-  
+
   cmd_parts <- c(
     shQuote(pngquant_path),
     "--speed", as.character(speed),
@@ -245,14 +282,14 @@ pngquant_compress_single_file <- function(pngquant_path, file,
     ignore.stderr = FALSE
   )
   stat <- attr(result, "status")
-  
+
   # Extract filename from path
   filename <- basename(file)
-  
+
   if (is.null(stat) || stat == 0) {
     # Get file sizes for statistics
     final_size <- file.info(file)$size
-    
+
     # Show compression info
     if (final_size < init_size) {
       if (verbosity) {
@@ -265,7 +302,7 @@ pngquant_compress_single_file <- function(pngquant_path, file,
         paste("File already compressed:", crayon::blue(filename))
       )
     }
-    
+
     stats <- list(
       initial_size = init_size,
       final_size = final_size,
@@ -313,14 +350,14 @@ pngquant_compress_single_file <- function(pngquant_path, file,
 #' @export
 compress_png <- function(path, png_overwrite = TRUE,
                          speed = 1, verbosity = TRUE) {
-  
+
   # Find pngquant executable
   pngquant_path <- find_pngquant(verbosity)
   if (is.null(pngquant_path)) {
     cli::cli_alert_warning("pngquant not found and installation declined.")
     return(invisible(NULL))
   }
-  
+
   # Check if path is a file or directory
   is_file <- FALSE
   if (file.exists(path)) {
@@ -341,7 +378,7 @@ compress_png <- function(path, png_overwrite = TRUE,
     cli::cli_alert_warning("Path does not exist.")
     return(invisible(NULL))
   }
-  
+
   # Process files
   if (is_file) {
     # Single file processing
@@ -370,12 +407,12 @@ compress_png <- function(path, png_overwrite = TRUE,
       total = length(png_files), width = 60,
       show_after = 0.1
     )
-    
+
     compressed_count <- 0
     skipped_count <- 0
     errors <- character()
     all_stats <- list()
-    
+
     for (file in png_files) {
       result <- pngquant_compress_single_file(
         pngquant_path, file, speed,
@@ -398,7 +435,7 @@ compress_png <- function(path, png_overwrite = TRUE,
       stats_df <- do.call(rbind, all_stats)
       stats_df <- as.data.frame(stats_df)
       stats_df$filename <- names(all_stats)
-      
+
       # Count how many files were actually compressed (init_size > final_size)
       actually_compressed <- sum(stats_df$init_size > stats_df$final_size)
       total_planned <- nrow(stats_df)
@@ -408,33 +445,33 @@ compress_png <- function(path, png_overwrite = TRUE,
       actually_compressed <- 0
       total_planned <- 0
     }
-    
-    
+
+
     cli::cli_h2(
       glue::glue("Out of {total_planned} images:")
     )
-    
+
     cli::cli_bullets(c(
       "\u2714" = glue::glue("{actually_compressed} were compressed"),
       "\u2139" = glue::glue("{optimised} were skipped as already compressed")
     ))
-    
+
     if (length(errors) > 0) {
       cli::cli_alert_warning(
         paste(length(errors), "files could not be compressed:")
       )
-      
+
       for (i in seq_len(min(5, length(errors)))) {
         cli::cli_alert_info(errors[i])
       }
-      
+
       if (length(errors) > 5) {
         cli::cli_alert_info(
           sprintf("... and %d more", length(errors) - 5)
         )
       }
     }
-    
+
     invisible(stats_df)
   }
 }
