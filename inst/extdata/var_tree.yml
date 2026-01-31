@@ -44,6 +44,14 @@ lqas:
     label_en: "Last day of LQAS data collection in lot"
     label_fr: "Dernier jour de collecte des données LQAS dans le lot"
 
+  lqas_start_date:
+    label_en: "First day of LQAS data collection in lot"
+    label_fr: "Premier jour de collecte des données LQAS dans le lot"
+
+  lqas_end_date:
+    label_en: "Last day of LQAS data collection in lot"
+    label_fr: "Dernier jour de collecte des données LQAS dans le lot"
+
   cluster:
     label_en: "Number of clusters (households) surveyed per lot"
     label_fr: "Nombre de grappes (ménages) enquêtées par lot"

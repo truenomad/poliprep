@@ -1510,7 +1510,7 @@ prep_geonames <- function(
       if (level %in% names(lookup_df)) {
         # Get unique mappings from uppercase to original case
         original_values <- lookup_df[[level]]
-        uppercase_values <- toupper(original_values)
+        uppercase_values <- .clean_utf8(original_values) |> toupper()
         
         # Create mapping dataframe
         mapping_df <- data.frame(
