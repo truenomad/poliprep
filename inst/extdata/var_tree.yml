@@ -223,3 +223,65 @@ environmental:
   DateFinalResultsReported:
     label_en: "Date final results reported"
     label_fr: "Date de communication des résultats finaux"
+
+# SIA Campaign Administrative Data
+sia:
+  _description: "SIA (Supplementary Immunization Activity) campaign administrative variables."
+  label_en: "SIA Campaign Data"
+  label_fr: "Données de campagne AVS"
+
+  adm0:
+    label_en: "Country name (Admin Level 0)"
+    label_fr: "Nom du pays (Niveau administratif 0)"
+
+  adm1:
+    label_en: "Region/Province name (Admin Level 1)"
+    label_fr: "Nom de la région/province (Niveau administratif 1)"
+
+  adm2:
+    label_en: "District name (Admin Level 2)"
+    label_fr: "Nom du district (Niveau administratif 2)"
+
+  sia_date:
+    label_en: "Date of SIA campaign activity"
+    label_fr: "Date de l'activité de campagne AVS"
+
+  sia_year:
+    label_en: "Year of SIA campaign"
+    label_fr: "Année de la campagne AVS"
+
+  sia_month:
+    label_en: "Month of SIA campaign"
+    label_fr: "Mois de la campagne AVS"
+
+  round_add:
+    label_en: "Campaign round identifier (e.g., R1, R2)"
+    label_fr: "Identifiant du tour de campagne (ex: R1, R2)"
+
+  vaccine_type:
+    label_en: "OPV antigen used: 1) bOPV, 2) nOPV2, 3) mOPV, 4) nOPV2 & bOPV (co-administration)"
+    label_fr: "Antigène VPO utilisé: 1) bVPO, 2) nVPO2, 3) mVPO, 4) nVPO2 & bVPO (co-administration)"
+
+  response:
+    label_en: "ONA survey form/response identifier"
+    label_fr: "Identifiant du formulaire/réponse d'enquête ONA"
+
+  total_nbr_vacc_polio:
+    label_en: "Total children vaccinated (admin count)"
+    label_fr: "Total des enfants vaccinés (données administratives)"
+
+  cv_polio:
+    label_en: "Vaccination coverage % (admin reported)"
+    label_fr: "Couverture vaccinale % (données administratives)"
+
+  pop_polio:
+    label_en: "Target population for polio vaccination"
+    label_fr: "Population cible pour la vaccination antipolio"
+
+  integ_polio:
+    label_en: "Integrated polio activities indicator"
+    label_fr: "Indicateur d'activités polio intégrées"
+
+  district_vacc_coverage:
+    label_en: "District-level vaccination coverage %"
+    label_fr: "Couverture vaccinale au niveau district %"

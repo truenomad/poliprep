@@ -59,3 +59,20 @@
 #' @format An sf object
 #' @source Natural Earth \url{https://www.naturalearthdata.com/}
 "world"
+
+#' Polio Variable Tree
+#'
+#' A hierarchical structure containing variable definitions and labels for
+#' polio data preparation workflows. Includes labels in English and French
+#' for LQAS, surveillance, and environmental surveillance variables.
+#'
+#' @format A nested list with sections:
+#' \describe{
+#'   \item{\code{_meta}}{Metadata including version, author, and description}
+#'   \item{\code{lqas}}{LQAS survey variable definitions with label_en and label_fr}
+#'   \item{\code{surveillance}}{Surveillance variable definitions}
+#'   \item{\code{environmental}}{Environmental surveillance variable definitions}
+#' }
+#' @seealso \code{\link{build_dictionary}}, \code{\link{get_var_labels}}
+#' @keywords datasets
+"polio_var_tree"

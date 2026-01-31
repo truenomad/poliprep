@@ -88,35 +88,12 @@ get_var_labels <- function(language = "en") {
   .get_label_map(language)
 }
 
-# internal: load and flatten var_tree.yml into a named vector
+# internal: load and flatten polio_var_tree into a named vector
 # @noRd
 .get_label_map <- function(language = "en") {
-  # Try system.file first (for installed package)
-  yml_path <- base::system.file(
-    "extdata", "var_tree.yml",
-    package = "poliprep"
-  )
-
-  # Fall back to inst/extdata for development/testing
-  if (!base::nzchar(yml_path) || !base::file.exists(yml_path)) {
-    dev_paths <- c(
-      base::file.path("inst", "extdata", "var_tree.yml"),
-      base::file.path("..", "..", "inst", "extdata", "var_tree.yml")
-    )
-    for (dev_path in dev_paths) {
-      if (base::file.exists(dev_path)) {
-        yml_path <- dev_path
-        break
-      }
-    }
-  }
-
-  if (!base::nzchar(yml_path) || !base::file.exists(yml_path)) {
-    return(base::character(0))
-  }
-
+  # Use polio_var_tree from package data
   tree <- tryCatch(
-    yaml::read_yaml(yml_path),
+    get("polio_var_tree", envir = asNamespace("poliprep")),
     error = function(e) NULL
   )
 
@@ -127,8 +104,8 @@ get_var_labels <- function(language = "en") {
   label_col <- base::paste0("label_", language)
   labels <- base::character(0)
 
-  # flatten nested structure
- for (section_name in base::names(tree)) {
+  # flatten nested structure (lqas, surveillance, environmental sections)
+  for (section_name in base::names(tree)) {
     if (base::startsWith(section_name, "_")) next
 
     section <- tree[[section_name]]
@@ -136,6 +113,7 @@ get_var_labels <- function(language = "en") {
 
     for (var_name in base::names(section)) {
       if (base::startsWith(var_name, "_")) next
+      if (base::startsWith(var_name, "label_")) next
 
       var_def <- section[[var_name]]
       if (base::is.list(var_def) && label_col %in% base::names(var_def)) {
