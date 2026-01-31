@@ -204,7 +204,7 @@ download_ona_forms <- function(form_ids,
   has_more <- TRUE
 
   while (has_more) {
-    url <- paste0(base_url, "/", form_id, ".json")
+    url <- paste0(base_url, "/", form_id)
 
     response <- httr::GET(
       url,
