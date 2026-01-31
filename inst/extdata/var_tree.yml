@@ -1,0 +1,225 @@
+_meta:
+  version: 1.0.0
+  author: "Mohamed Yusuf"
+  maintainer: "myusuf@appliedhealthanalytics.org"
+  date_created: "2026-01-31"
+  last_updated: "2026-01-31"
+  description: "Variable reference for polio data preparation workflows (LQAS, SIA, surveillance)."
+
+# LQAS Survey Variables
+lqas:
+  _description: "LQAS (Lot Quality Assurance Sampling) survey variables for SIA monitoring."
+  label_en: "LQAS Survey Data"
+  label_fr: "Données d'enquête LQAS"
+
+  country_iso3:
+    label_en: "ISO3 country code where LQAS survey was conducted"
+    label_fr: "Code pays ISO3 où l'enquête LQAS a été réalisée"
+
+  adm0:
+    label_en: "Country name (Admin Level 0)"
+    label_fr: "Nom du pays (Niveau administratif 0)"
+
+  adm1:
+    label_en: "Region/Province (Admin Level 1) - LQAS lot boundary"
+    label_fr: "Région/Province (Niveau administratif 1) - Limite de lot LQAS"
+
+  adm2:
+    label_en: "District (Admin Level 2) - LQAS decision unit"
+    label_fr: "District (Niveau administratif 2) - Unité de décision LQAS"
+
+  response:
+    label_en: "ONA survey form identifier"
+    label_fr: "Identifiant du formulaire d'enquête ONA"
+
+  round_number:
+    label_en: "SIA campaign round (Rnd1, Rnd2, Rnd3)"
+    label_fr: "Tour de campagne AVS (Rnd1, Rnd2, Rnd3)"
+
+  start_date:
+    label_en: "First day of LQAS data collection in lot"
+    label_fr: "Premier jour de collecte des données LQAS dans le lot"
+
+  end_date:
+    label_en: "Last day of LQAS data collection in lot"
+    label_fr: "Dernier jour de collecte des données LQAS dans le lot"
+
+  cluster:
+    label_en: "Number of clusters (households) surveyed per lot"
+    label_fr: "Nombre de grappes (ménages) enquêtées par lot"
+
+  male_sampled:
+    label_en: "Male children 0-59 months sampled"
+    label_fr: "Garçons de 0-59 mois échantillonnés"
+
+  female_sampled:
+    label_en: "Female children 0-59 months sampled"
+    label_fr: "Filles de 0-59 mois échantillonnées"
+
+  total_sampled:
+    label_en: "Total eligible children sampled (target: 60 per lot)"
+    label_fr: "Total des enfants éligibles échantillonnés (cible: 60 par lot)"
+
+  male_vaccinated:
+    label_en: "Male children with finger mark (confirmed vaccinated)"
+    label_fr: "Garçons avec marque au doigt (vaccinés confirmés)"
+
+  female_vaccinated:
+    label_en: "Female children with finger mark (confirmed vaccinated)"
+    label_fr: "Filles avec marque au doigt (vaccinées confirmées)"
+
+  total_vaccinated:
+    label_en: "Total children with finger mark evidence"
+    label_fr: "Total des enfants avec preuve de marque au doigt"
+
+  missed_child:
+    label_en: "Children without finger mark (missed by campaign)"
+    label_fr: "Enfants sans marque au doigt (manqués par la campagne)"
+
+  resp_non_compliance:
+    label_en: "Caregiver refusal to vaccinate child"
+    label_fr: "Refus du tuteur de vacciner l'enfant"
+
+  resp_house_not_visited:
+    label_en: "Household not reached by vaccination team"
+    label_fr: "Ménage non atteint par l'équipe de vaccination"
+
+  resp_child_absent:
+    label_en: "Child not home during team visit"
+    label_fr: "Enfant absent lors de la visite de l'équipe"
+
+  resp_child_asleep:
+    label_en: "Child sleeping, not woken for vaccination"
+    label_fr: "Enfant endormi, non réveillé pour la vaccination"
+
+  resp_child_visitor:
+    label_en: "Child visiting from outside catchment area"
+    label_fr: "Enfant en visite provenant d'une autre zone"
+
+  resp_vaccinated_not_fm:
+    label_en: "Reported vaccinated but no finger mark evidence"
+    label_fr: "Signalé vacciné mais sans preuve de marque au doigt"
+
+  caregiver_informed_sia:
+    label_en: "Caregivers aware of SIA before campaign"
+    label_fr: "Tuteurs informés de l'AVS avant la campagne"
+
+  pct_caregiver_informed_sia:
+    label_en: "% caregivers with prior SIA awareness"
+    label_fr: "% de tuteurs informés de l'AVS au préalable"
+
+  total_missed:
+    label_en: "Adjusted missed (adds shortfall if sampled < 60)"
+    label_fr: "Manqués ajustés (ajoute le déficit si échantillon < 60)"
+
+  status:
+    label_en: "LQAS decision: Pass (≤3 missed) / Fail (>3 missed)"
+    label_fr: "Décision LQAS: Réussite (≤3 manqués) / Échec (>3 manqués)"
+
+  performance:
+    label_en: "Coverage level: high/moderate/poor/very poor"
+    label_fr: "Niveau de couverture: élevé/modéré/faible/très faible"
+
+  vaccine_type:
+    label_en: "OPV antigen used: bOPV, nOPV2, or mOPV"
+    label_fr: "Antigène VPO utilisé: bVPO, nVPO2, ou mVPO"
+
+# Surveillance metadata
+surveillance:
+  _description: "Polio surveillance metadata variables."
+  label_en: "Surveillance Metadata"
+  label_fr: "Métadonnées de surveillance"
+
+  EPID:
+    label_en: "Unique case identifier (EPID number)"
+    label_fr: "Identifiant unique du cas (numéro EPID)"
+
+  Admin0Name:
+    label_en: "Country name"
+    label_fr: "Nom du pays"
+
+  Admin1Name:
+    label_en: "Province/Region name"
+    label_fr: "Nom de la province/région"
+
+  Admin2Name:
+    label_en: "District name"
+    label_fr: "Nom du district"
+
+  Admin0GUID:
+    label_en: "Country unique identifier (GUID)"
+    label_fr: "Identifiant unique du pays (GUID)"
+
+  Admin1GUID:
+    label_en: "Province/Region unique identifier (GUID)"
+    label_fr: "Identifiant unique de la province/région (GUID)"
+
+  Admin2GUID:
+    label_en: "District unique identifier (GUID)"
+    label_fr: "Identifiant unique du district (GUID)"
+
+  Latitude:
+    label_en: "Case latitude coordinate"
+    label_fr: "Coordonnée de latitude du cas"
+
+  Longitude:
+    label_en: "Case longitude coordinate"
+    label_fr: "Coordonnée de longitude du cas"
+
+  CaseDate:
+    label_en: "Date of paralysis onset"
+    label_fr: "Date de début de la paralysie"
+
+  NotificationDate:
+    label_en: "Date case was notified"
+    label_fr: "Date de notification du cas"
+
+  InvestigationDate:
+    label_en: "Date case was investigated"
+    label_fr: "Date d'investigation du cas"
+
+  Stool1CollectionDate:
+    label_en: "First stool specimen collection date"
+    label_fr: "Date de collecte du premier échantillon de selles"
+
+  Stool2CollectionDate:
+    label_en: "Second stool specimen collection date"
+    label_fr: "Date de collecte du deuxième échantillon de selles"
+
+# Environmental surveillance
+environmental:
+  _description: "Environmental surveillance variables."
+  label_en: "Environmental Surveillance"
+  label_fr: "Surveillance environnementale"
+
+  SampleId:
+    label_en: "Environmental sample unique identifier"
+    label_fr: "Identifiant unique de l'échantillon environnemental"
+
+  CollectionDate:
+    label_en: "Sample collection date"
+    label_fr: "Date de collecte de l'échantillon"
+
+  SiteYCoordinate:
+    label_en: "Site latitude coordinate"
+    label_fr: "Coordonnée de latitude du site"
+
+  SiteXCoordinate:
+    label_en: "Site longitude coordinate"
+    label_fr: "Coordonnée de longitude du site"
+
+  DateShippedToRefLab:
+    label_en: "Date sample shipped to reference lab"
+    label_fr: "Date d'envoi de l'échantillon au laboratoire de référence"
+
+  DateReceivedInLab:
+    label_en: "Date sample received in lab"
+    label_fr: "Date de réception de l'échantillon au laboratoire"
+
+  DateFinalCultureResult:
+    label_en: "Date of final culture result"
+    label_fr: "Date du résultat final de culture"
+
+  DateFinalResultsReported:
+    label_en: "Date final results reported"
+    label_fr: "Date de communication des résultats finaux"

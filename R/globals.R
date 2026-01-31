@@ -200,6 +200,13 @@ globalVariables(
     "pngquant_path",
     "speed",
     "lower",
-    "upper"
+    "upper",
+    "variable",
+    "type",
+    "n_missing",
+    "pct_missing",
+    "n_unique",
+    "example_values",
+    "notes"
   )
 )

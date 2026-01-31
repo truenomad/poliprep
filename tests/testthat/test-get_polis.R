@@ -101,22 +101,34 @@ testthat::test_that("get_polis_api_data returns correct data structure", {
 
 
 testthat::test_that("Get the correct response and status code form API call", {
+  testthat::skip_on_cran()
   url <- "https://fakerapi.it/api/v1/addresses?_quantity=1"
-  
-  status_code <- iterative_api_call(url) |>
-    head(1) |>
-    httr2::resps_data(\(resp) httr2::resp_status(resp))
-  
+
+  # Skip if API is unavailable
+  tryCatch({
+    status_code <- iterative_api_call(url) |>
+      head(1) |>
+      httr2::resps_data(\(resp) httr2::resp_status(resp))
+  }, error = function(e) {
+    testthat::skip(paste("External API unavailable:", e$message))
+  })
+
   testthat::expect_equal(status_code, 200)
 })
 
 
 testthat::test_that("Test functionality of process_api_response", {
+  testthat::skip_on_cran()
   url <- "https://fakerapi.it/api/v1/addresses?_quantity=10"
-  
-  response <- iterative_api_call(url)  |>
-    process_api_response()
-  
+
+  # Skip if API is unavailable
+  response <- tryCatch({
+    iterative_api_call(url) |>
+      process_api_response()
+  }, error = function(e) {
+    testthat::skip(paste("External API unavailable:", e$message))
+  })
+
   testthat::expect_type(response, 'list')
 })
 
