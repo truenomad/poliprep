@@ -12,6 +12,14 @@ lqas:
   label_en: "LQAS Survey Data"
   label_fr: "Données d'enquête LQAS"
 
+  afro_block:
+    label_en: "AFRO geographic block identifier (e.g., CAE, WAS, ESA)"
+    label_fr: "Identifiant du bloc géographique AFRO (ex: CAE, WAS, ESA)"
+
+  country_code:
+    label_en: "Original country identifier from source data (e.g., CAE, GHA, RDC)"
+    label_fr: "Identifiant pays d'origine des données sources (ex: CAE, GHA, RDC)"
+
   country_iso3:
     label_en: "ISO3 country code where LQAS survey was conducted"
     label_fr: "Code pays ISO3 où l'enquête LQAS a été réalisée"
@@ -36,6 +44,10 @@ lqas:
     label_en: "SIA campaign round (Rnd1, Rnd2, Rnd3)"
     label_fr: "Tour de campagne AVS (Rnd1, Rnd2, Rnd3)"
 
+  rnd_distinct:
+    label_en: "Distinct round identifier combining response and round number"
+    label_fr: "Identifiant de tour distinct combinant réponse et numéro de tour"
+
   start_date:
     label_en: "First day of LQAS data collection in lot"
     label_fr: "Premier jour de collecte des données LQAS dans le lot"
@@ -51,6 +63,10 @@ lqas:
   lqas_end_date:
     label_en: "Last day of LQAS data collection in lot"
     label_fr: "Dernier jour de collecte des données LQAS dans le lot"
+
+  year:
+    label_en: "Year extracted from lqas_start_date"
+    label_fr: "Année extraite de lqas_start_date"
 
   cluster:
     label_en: "Number of clusters (households) surveyed per lot"
