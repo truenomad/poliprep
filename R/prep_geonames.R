@@ -122,8 +122,8 @@ handle_file_save <- function(data_to_save, default_save_path = NULL) {
         merged_cache <- data_to_save
       }
 
-      # Save the merged cache using sntutils write()
-      write(merged_cache, cache_path)
+      # Save the merged cache using save()
+      save(merged_cache, cache_path)
       cli::cli_alert_success("File saved successfully to {cache_path}.")
       break
     } else if (confirm_save == "n") {
@@ -975,25 +975,6 @@ handle_user_interaction <- function(input_data, levels, level,
   }
 }
 
-#' Clean UTF-8 Encoding for Geographic Names
-#'
-#' Converts text to UTF-8 encoding and removes special characters that may
-#' cause matching issues, keeping only letters, numbers, spaces, hyphens,
-#' and underscores.
-#'
-#' @param x Character vector to clean
-#' @return Character vector with cleaned UTF-8 text
-#' @keywords internal
-#' @noRd
-.clean_utf8 <- function(x) {
-  x |>
-    stringi::stri_enc_toutf8(validate = FALSE) |>
-    stringi::stri_replace_all_regex(
-      "[^\\p{L}\\p{N}\\s\\-\\_]",
-      ""
-    )
-}
-
 #' Construct Long Geographic Names
 #'
 #' This function creates a composite geographic identifier by concatenating
@@ -1203,9 +1184,9 @@ export_unmatched_data <- function(target_todo, unmatched_export_path,
         "name_of_creator"
       )
 
-    # Save using sntutils write() function
+    # Save using save() function
     tryCatch({
-      write(unmatched_df, unmatched_export_path)
+      save(unmatched_df, unmatched_export_path)
       cli::cli_alert_success(
         "Unmatched data exported to: {.file {unmatched_export_path}}"
       )
@@ -1556,7 +1537,7 @@ prep_geonames <- function(
       if (level %in% names(lookup_df)) {
         # Get unique mappings from uppercase to original case
         original_values <- lookup_df[[level]]
-        uppercase_values <- .clean_utf8(original_values) |> toupper()
+        uppercase_values <- toupper(original_values)
 
         # Create mapping dataframe
         mapping_df <- data.frame(
@@ -1571,12 +1552,12 @@ prep_geonames <- function(
     }
   }
 
-  # Clean UTF-8 encoding and ensure uppercase for matching
+  # Ensure administrative names are uppercase for matching
   target_df <- target_df |>
     dplyr::mutate(
       dplyr::across(
         dplyr::any_of(levels),
-        ~ .clean_utf8(.x) |> toupper()
+        toupper
       )
     )
 
@@ -1584,7 +1565,7 @@ prep_geonames <- function(
     dplyr::mutate(
       dplyr::across(
         dplyr::any_of(levels),
-        ~ .clean_utf8(.x) |> toupper()
+        toupper
       )
     )
 
