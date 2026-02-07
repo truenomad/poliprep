@@ -522,28 +522,14 @@ get_ona_page <- function(api_url, api_token, times = 12) {
         httr::content("text", encoding = "UTF-8") |>
         jsonlite::fromJSON(simplifyDataFrame = FALSE)
 
-      # Case 0: no data
       if (length(raw) == 0) {
-        return(data.frame())
+        return(list())
       }
 
-      # Case 1: single record (named list)
-      if (is.list(raw) && !is.null(names(raw))) {
-        raw <- list(raw)
-      }
-
-      # Case 2: data.frame slipped through
-      if (is.data.frame(raw)) {
-        raw <- split(raw, seq_len(nrow(raw)))
-      }
-
-      purrr::map(raw, flatten_ona_record) |>
-        purrr::map(as.data.frame, stringsAsFactors = FALSE) |>
-        dplyr::bind_rows()
+      raw
     },
     error = function(e) {
-      message("Error encountered: ", e$message)
-      data.frame()
+      stop("Error encountered: ", e$message, call. = FALSE)
     }
   )
 }
@@ -586,6 +572,41 @@ get_paginated_data <- function(api_url, api_token) {
   results <- list()
   page_number <- 1
 
+  coerce_page_to_df <- function(raw_page) {
+    if (is.null(raw_page) || length(raw_page) == 0) {
+      return(data.frame())
+    }
+
+    page_data <- raw_page
+
+    # Common API wrappers
+    if (is.list(page_data) && !is.null(page_data$data)) {
+      page_data <- page_data$data
+    } else if (is.list(page_data) && !is.null(page_data$results)) {
+      page_data <- page_data$results
+    }
+
+    if (is.null(page_data) || length(page_data) == 0) {
+      return(data.frame())
+    }
+
+    if (is.data.frame(page_data)) {
+      page_data <- split(page_data, seq_len(nrow(page_data)))
+    }
+
+    if (is.list(page_data) && !is.null(names(page_data))) {
+      page_data <- list(page_data)
+    }
+
+    if (!is.list(page_data)) {
+      return(data.frame())
+    }
+
+    purrr::map(page_data, flatten_ona_record) |>
+      purrr::map(as.data.frame, stringsAsFactors = FALSE) |>
+      dplyr::bind_rows()
+  }
+
   repeat {
     # Append page and page_size parameters
     paged_url <- paste0(
@@ -595,8 +616,7 @@ get_paginated_data <- function(api_url, api_token) {
       "&page_size=100000"
     )
 
-    current_page <- get_ona_page(paged_url, api_token) |>
-      as.data.frame() |>
+    current_page <- coerce_page_to_df(get_ona_page(paged_url, api_token)) |>
       dplyr::mutate(dplyr::across(tidyselect::everything(), as.character))
 
     results <- dplyr::bind_rows(results, current_page)

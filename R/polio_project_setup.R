@@ -32,8 +32,8 @@
 #' └── 1.6_final/                       (final analysis-ready datasets)
 #' ```
 #'
-#' Each leaf folder (except `1.6_final` and `1.1e_cache_files`) contains
-#' `raw/` and `processed/` subfolders. Cache is flat for intermediate files.
+#' Each leaf folder (except `1.6_final`) contains `raw/` and `processed/`
+#' subfolders.
 #'
 #' @param base_path Character. Root directory for the data folders.
 #'   Default is current directory.
@@ -47,7 +47,7 @@
 #' fs::dir_tree(fs::path(tmp, "01_data"), recurse = 1)
 create_polio_data_structure <- function(base_path = ".") {
   # folders that should NOT have raw/processed subfolders
-  no_subfolders <- c("1.1e_cache_files")
+  no_subfolders <- character(0)
 
   data_structure <- list(
     "1.1_foundational" = c(
