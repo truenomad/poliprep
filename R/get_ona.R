@@ -407,6 +407,97 @@ get_ona_form <- function(base_url = "https://api.whonghub.org",
   return(results)
 }
 
+#' Flatten a Single ONA Submission into Wide Key-Value Pairs
+#'
+#' Recursively flattens a nested ONA JSON record into a named list of
+#' character values using wide expansion. Nested objects are converted
+#' into slash-separated keys, and repeat groups (lists) are expanded
+#' horizontally using indexed column names (e.g. `[1]`, `[2]`).
+#'
+#' The function preserves one row per submission. No row-level unnesting
+#' occurs. All values are coerced to character for downstream consistency.
+#'
+#' A special rule is applied to fields ending in `Count_HH`. For these,
+#' the separator is not re-applied when descending into children. This
+#' prevents duplicated key paths when flattening household count repeat
+#' groups commonly found in ONA forms.
+#'
+#' @param x A named list representing a single ONA submission parsed from
+#'   JSON with `simplifyDataFrame = FALSE`.
+#' @param parent_key A character string representing the accumulated key
+#'   path during recursion. Used internally. Default is an empty string.
+#' @param sep A character string used to separate nested field names.
+#'   Default is `"/"`.
+#'
+#' @return A named list where each element corresponds to a flattened field.
+#'   All values are returned as character strings.
+#'
+#' @details
+#' Flattening rules:
+#' \itemize{
+#'   \item Nested objects are flattened using `sep` to join keys.
+#'   \item Lists are expanded into indexed columns using `[i]` notation.
+#'   \item Lists do not create new rows.
+#'   \item Data frames are treated as atomic and not recursed.
+#'   \item All values are coerced to character.
+#' }
+#'
+#' This function is intended to be applied immediately after parsing ONA
+#' API responses and before converting to a data frame.
+#'
+#' @examples
+#' \dontrun{
+#' raw <- jsonlite::fromJSON("ona_response.json", simplifyDataFrame = FALSE)
+#' flat <- flatten_ona_record(raw[[1]])
+#' as.data.frame(flat, stringsAsFactors = FALSE)
+#' }
+#'
+#' @seealso \code{\link{get_ona_page}} for usage in paginated downloads.
+#'
+#' @export
+flatten_ona_record <- function(x, parent_key = "", sep = "/") {
+  out <- list()
+
+  # NULL → empty named list
+  if (is.null(x)) {
+    return(out)
+  }
+
+  # atomic → assign to parent_key
+  if (!is.list(x)) {
+    if (nzchar(parent_key)) {
+      out[[parent_key]] <- as.character(x)
+    }
+    return(out)
+  }
+
+  # unnamed list → index-based recursion
+  if (is.null(names(x))) {
+    for (i in seq_along(x)) {
+      idx_key <- paste0(parent_key, "[", i, "]")
+      out <- c(out, flatten_ona_record(x[[i]], idx_key, sep))
+    }
+    return(out)
+  }
+
+  # named list
+  for (nm in names(x)) {
+    value <- x[[nm]]
+
+    new_key <- if (nzchar(parent_key) && !endsWith(parent_key, "Count_HH")) {
+      paste0(parent_key, sep, nm)
+    } else if (nzchar(parent_key)) {
+      paste0(parent_key, nm)
+    } else {
+      nm
+    }
+
+    out <- c(out, flatten_ona_record(value, new_key, sep))
+  }
+
+  out
+}
+
 #' Get a Page of Data from an API
 #'
 #' This function retrieves a single page of data from a specified API endpoint.
@@ -420,16 +511,39 @@ get_ona_form <- function(base_url = "https://api.whonghub.org",
 #'         stops and returns an error message.
 get_ona_page <- function(api_url, api_token, times = 12) {
   tryCatch(
-    httr::RETRY(
-      "GET", api_url,
-      httr::add_headers(Authorization = paste("Token", api_token)),
-      times = times, pause_cap = 180, httr::progress("down")
-    ) |>
-      httr::content("text", encoding = "UTF-8") |>
-      jsonlite::fromJSON(simplifyDataFrame = TRUE),
+    {
+      raw <- httr::RETRY(
+        "GET",
+        api_url,
+        httr::add_headers(Authorization = paste("Token", api_token)),
+        times = times,
+        pause_cap = 180
+      ) |>
+        httr::content("text", encoding = "UTF-8") |>
+        jsonlite::fromJSON(simplifyDataFrame = FALSE)
+
+      # Case 0: no data
+      if (length(raw) == 0) {
+        return(data.frame())
+      }
+
+      # Case 1: single record (named list)
+      if (is.list(raw) && !is.null(names(raw))) {
+        raw <- list(raw)
+      }
+
+      # Case 2: data.frame slipped through
+      if (is.data.frame(raw)) {
+        raw <- split(raw, seq_len(nrow(raw)))
+      }
+
+      purrr::map(raw, flatten_ona_record) |>
+        purrr::map(as.data.frame, stringsAsFactors = FALSE) |>
+        dplyr::bind_rows()
+    },
     error = function(e) {
       message("Error encountered: ", e$message)
-      NULL
+      data.frame()
     }
   )
 }

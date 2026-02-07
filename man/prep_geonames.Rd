@@ -17,13 +17,16 @@ prep_geonames(
   method = "jw",
   interactive = TRUE,
   max_options = 200,
-  preserve_case = FALSE
+  preserve_case = FALSE,
+  column_width = 60
 )
 }
 \arguments{
 \item{target_df}{Data frame containing the admin names to clean.}
 
-\item{lookup_df}{Lookup data frame for verifying admin names.}
+\item{lookup_df}{Lookup data frame for verifying admin names. If this is not
+provided, an internal version of WHO geoname data
+attached to sntutils is used.}
 
 \item{level0}{level0 col name (country) in both 'data' and 'lookup_data'.}
 
@@ -36,18 +39,20 @@ prep_geonames(
 \item{level4}{level4 col name (settlement) in both 'data' and 'lookup_data'.}
 
 \item{cache_path}{Optional; the path where the cache data frame is
-saved after user modifications. This path is also used to match and
-integrate previously established corrections into the current
-session. If NULL or the file does not exist at the provided path,
-users will be prompted to specify a new path or create a new cache
-data frame.}
+saved after user modifications. Supports all file formats supported
+by sntutils read() and write() functions including .rds, .csv, .xlsx,
+.dta, .tsv, and more. This path is also used to match and integrate
+previously established corrections into the current session. If NULL
+or the file does not exist at the provided path, users will be
+prompted to specify a new path or create a new cache data frame.}
 
 \item{unmatched_export_path}{Optional; path to save unmatched data after
 processing. The file will include complete rows with full hierarchical
 context, showing which column needs matching (typically the most
 granular level like health facilities) along with all administrative
-levels and metadata (timestamp, username, data sources). Supports .csv
-and .rds file formats based on the file extension.}
+levels and metadata (timestamp, username, data sources). Supports all
+file formats supported by sntutils write() function based on the file
+extension.}
 
 \item{method}{The string distance calculation method(s) to be used. Users
 can specify one or more algorithms from the
@@ -68,6 +73,12 @@ matching. Default is 200.}
 \item{preserve_case}{Logical; if TRUE, preserves the original case of admin
 names from the lookup data when returning matched values. If FALSE
 (default), returns all admin names in uppercase as before.}
+
+\item{column_width}{Numeric; the maximum width (in characters) for each
+column in the interactive menu. Controls how much text is displayed
+before truncation. Default is 60 characters. Note that the actual
+text display width is approximately 8 characters less to accommodate
+number labels and truncation markers ("...").}
 }
 \value{
 A data frame with cleaned administrative names and saved data frame
@@ -112,12 +123,21 @@ target_df <- data.frame(
   subdistrict = c("AREA1", "AREA2", "AREA3")
 )
 
+# Dummy lookup data with correct spellings
+lookup_df <- data.frame(
+  country = c("ANGOLA", "ANGOLA", "UGANDA", "UGANDA", "ZAMBIA", "ZAMBIA"),
+  province = c("CABINDA", "CABINDA", "TESO", "TESO", "LUSAKA", "LUSAKA"),
+  district = c("BELIZE", "BUCO-ZAU", "BUKEDEA", "KUMI", "KAFUE", "LUSAKA"),
+  stringsAsFactors = FALSE
+)
+
 # Interactively clean geonames
 prep_geonames(
   target_df,
+  lookup_df = lookup_df,
   level0 = "country", level1 = "province",
   level2 = "district",
-  interactive = FALSE # replace with TRUE for interactivty
+  interactive = FALSE # replace with TRUE for interactivity
 )
 }
 
