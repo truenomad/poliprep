@@ -796,12 +796,17 @@ get_ona_data <- function(base_url = "https://api.whonghub.org",
 #'
 generate_urls <- function(full_data, file_path,
                           data_file_name, base_url, form_ids) {
+  # Find the ID column (_id or X_id)
+  id_col <- intersect(c("_id", "X_id"), names(full_data))[1]
+
   urls <- lapply(form_ids, function(form_id) {
     # Check if form_id exists in the dataset
     if (form_id %in% full_data$form_id_num) {
+      form_data <- full_data |>
+        dplyr::filter(form_id_num == form_id)
+
       # date of last update
-      last_date_in_chunk <- full_data |>
-        dplyr::filter(form_id_num == form_id) |>
+      last_date_in_chunk <- form_data |>
         dplyr::summarise(
           date_last_updated = as.Date(
             max(date_last_updated, na.rm = TRUE),
@@ -811,12 +816,29 @@ generate_urls <- function(full_data, file_path,
         dplyr::pull(date_last_updated)
 
       # Construct URL with last edited parts
-      paste0(
+      url <- paste0(
         base_url, "/api/v1/data/", form_id,
         "?last_edited__year=", lubridate::year(last_date_in_chunk),
         "&last_edited__month=", lubridate::month(last_date_in_chunk),
         "&last_edited__day__gte=", lubridate::day(last_date_in_chunk)
       )
+
+      # Also filter by max _id if available
+      if (!is.na(id_col) && id_col %in% names(form_data)) {
+        max_id <- max(as.numeric(form_data[[id_col]]), na.rm = TRUE)
+        if (!is.na(max_id) && is.finite(max_id)) {
+          url <- paste0(
+            url,
+            "&query=",
+            utils::URLencode(
+              paste0("{\"_id\":{\"$gte\":", max_id, "}}"),
+              reserved = TRUE
+            )
+          )
+        }
+      }
+
+      url
     } else {
       # Construct URL without last edited parts
       paste0(
@@ -1005,10 +1027,22 @@ get_updated_ona_data <- function(base_url = "https://api.whonghub.org",
 
   if (!is.null(fields_json) || !is.null(query_json)) {
     url_list <- lapply(urls, function(url) {
-      httr::modify_url(
-        url,
-        query = list(fields = fields_json, query = query_json)
-      )
+      parsed <- httr::parse_url(url)
+
+      # Merge query JSON with any existing _id query from generate_urls
+      if (!is.null(query_json) && !is.null(parsed$query$query)) {
+        existing_q <- gsub("^\\{|\\}$", "", parsed$query$query)
+        new_q <- gsub("^\\{|\\}$", "", query_json)
+        parsed$query$query <- paste0("{", existing_q, ",", new_q, "}")
+      } else if (!is.null(query_json)) {
+        parsed$query$query <- query_json
+      }
+
+      if (!is.null(fields_json)) {
+        parsed$query$fields <- fields_json
+      }
+
+      httr::build_url(parsed)
     })
   } else {
     url_list <- urls
