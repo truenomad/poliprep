@@ -1016,8 +1016,30 @@ get_updated_ona_data <- function(base_url = "https://api.whonghub.org",
 
   # Download data  -------------------------------------------------------------
 
-  new_data <- call_urls(url_list, api_token = api_token) |>
-    # drop any empty columns
+  new_data <- tryCatch(
+    {
+      call_urls(url_list, api_token = api_token)
+    },
+    error = function(e) {
+      cli::cli_alert_warning(
+        "Download failed: {e$message}"
+      )
+      data.frame()
+    }
+  )
+
+  # If all forms failed, warn and return existing data early
+  if (nrow(new_data) == 0) {
+    cli::cli_alert_info("No new data downloaded. Keeping existing data as-is.")
+    if (return_results) {
+      return(full_data_orig)
+    } else {
+      return(invisible(NULL))
+    }
+  }
+
+  # drop any empty columns
+  new_data <- new_data |>
     dplyr::select(
       dplyr::where(
         ~ any(!is.na(.))
@@ -1051,7 +1073,7 @@ get_updated_ona_data <- function(base_url = "https://api.whonghub.org",
   # log results ----------------------------------------------------------------
 
   if (log_results) {
-    logs <- NULL
+    logs <- list()
 
     for (form_id in unique(full_data$form_id_num)) {
       if (nrow(full_data_orig) != 0) {
@@ -1098,7 +1120,7 @@ get_updated_ona_data <- function(base_url = "https://api.whonghub.org",
         )
     }
 
-    log_messages <- do.call(rbind, logs) |>
+    log_messages <- dplyr::bind_rows(logs) |>
       dplyr::mutate(
         new_columns = as.character(new_columns),
         new_rows = as.character(new_rows)
