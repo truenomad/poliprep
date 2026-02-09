@@ -5,12 +5,16 @@
 #' count, example values, and min/max for numeric/date columns.
 #'
 #' @param data A data.frame or tibble to profile.
-#' @param language Target language for labels ("en" or "fr"). Default is "en".
+#' @param language Language for translation ("en" or "fr"). Default is "en".
+#'   English labels are always included as `label`. When a non-English language
+#'   is requested, an additional \code{label_\{language\}} column is appended after
+#'   `label`.
 #' @param n_examples Number of example values to show. Default is 3.
 #' @param max_levels Max factor levels to summarize in notes. Default is 50.
 #'
-#' @return A tibble with columns: variable, type, label, n, n_missing,
-#'   pct_missing, n_unique, example_values, min, max, notes.
+#' @return A tibble with columns: variable, type, label (English),
+#'   optionally \code{label_\{language\}} (translation), n, n_missing, pct_missing,
+#'   n_unique, example_values, min, max, notes.
 #'
 #' @examples
 #' df <- data.frame(
@@ -48,7 +52,7 @@ build_dictionary <- function(data,
     ))
   }
 
-  label_map <- .get_label_map(language)
+  label_map_en <- .get_label_map("en")
 
   # profile each column
   rows <- base::lapply(base::seq_along(vars), function(i) {
@@ -59,16 +63,25 @@ build_dictionary <- function(data,
     base::do.call(base::rbind, base::lapply(rows, base::as.data.frame))
   )
 
-  # add labels
-  dict$label <- base::unname(label_map[dict$variable])
+  # always add English labels as primary label
+  dict$label <- base::unname(label_map_en[dict$variable])
   dict$label[base::is.na(dict$label)] <- dict$variable[base::is.na(dict$label)]
+
+  # add translation column if a non-English language is requested
+  select_cols <- c("variable", "type", "label")
+  if (!base::identical(language, "en")) {
+    trans_col <- base::paste0("label_", language)
+    label_map_trans <- .get_label_map(language)
+    dict[[trans_col]] <- base::unname(label_map_trans[dict$variable])
+    dict[[trans_col]][base::is.na(dict[[trans_col]])] <- ""
+    select_cols <- c(select_cols, trans_col)
+  }
+  select_cols <- c(select_cols, "n", "n_missing", "pct_missing",
+                   "n_unique", "example_values", "min", "max", "notes")
 
   # reorder columns
   dict |>
-    dplyr::select(
-      variable, type, label, n, n_missing, pct_missing,
-      n_unique, example_values, min, max, notes
-    )
+    dplyr::select(dplyr::all_of(select_cols))
 }
 
 #' Get Variable Labels from var_tree.yml

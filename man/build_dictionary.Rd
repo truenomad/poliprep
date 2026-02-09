@@ -9,15 +9,19 @@ build_dictionary(data, language = "en", n_examples = 3L, max_levels = 50L)
 \arguments{
 \item{data}{A data.frame or tibble to profile.}
 
-\item{language}{Target language for labels ("en" or "fr"). Default is "en".}
+\item{language}{Language for translation ("en" or "fr"). Default is "en".
+English labels are always included as \code{label}. When a non-English language
+is requested, an additional \code{label_\{language\}} column is appended after
+\code{label}.}
 
 \item{n_examples}{Number of example values to show. Default is 3.}
 
 \item{max_levels}{Max factor levels to summarize in notes. Default is 50.}
 }
 \value{
-A tibble with columns: variable, type, label, n, n_missing,
-pct_missing, n_unique, example_values, min, max, notes.
+A tibble with columns: variable, type, label (English),
+optionally \code{label_\{language\}} (translation), n, n_missing, pct_missing,
+n_unique, example_values, min, max, notes.
 }
 \description{
 Create a tidy dictionary from a data.frame. Infers type per column,

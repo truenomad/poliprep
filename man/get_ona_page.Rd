@@ -4,7 +4,7 @@
 \alias{get_ona_page}
 \title{Get a Page of Data from an API}
 \usage{
-get_ona_page(api_url, api_token, times = 12)
+get_ona_page(api_url, api_token, times = 3)
 }
 \arguments{
 \item{api_url}{The base URL of the API endpoint.}

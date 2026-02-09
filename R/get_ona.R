@@ -509,7 +509,7 @@ flatten_ona_record <- function(x, parent_key = "", sep = "/") {
 #' @return A list containing the retrieved data parsed from JSON format. If
 #'         the specified content is not found or an error occurs, the function
 #'         stops and returns an error message.
-get_ona_page <- function(api_url, api_token, times = 12) {
+get_ona_page <- function(api_url, api_token, times = 3) {
   tryCatch(
     {
       raw <- httr::RETRY(
@@ -517,7 +517,8 @@ get_ona_page <- function(api_url, api_token, times = 12) {
         api_url,
         httr::add_headers(Authorization = paste("Token", api_token)),
         times = times,
-        pause_cap = 180
+        pause_cap = 30,
+        terminate_on = c(400L, 401L, 403L, 404L)
       ) |>
         httr::content("text", encoding = "UTF-8") |>
         jsonlite::fromJSON(simplifyDataFrame = FALSE)
@@ -843,28 +844,36 @@ call_urls <- function(urls, api_token) {
   progressr::with_progress({
     p <- progressr::progressor(along = urls)
 
-    results <- purrr::map_dfr(
+    results <- purrr::map(
       urls,
       function(url) {
         p() # Update progress
-        # Retrieve data from the API
-        data <- get_paginated_data(api_url = url, api_token = api_token)
-
-        # Extract form ID from the URL using regex
         form_id <- gsub(".*data/(\\d+).*", "\\1", url)
 
-        # If data is non-empty, add the form_id as a new column
-        if (nrow(data) > 0) {
-          data <- dplyr::mutate(
-            data,
-            form_id_num = form_id,
-            date_last_updated = Sys.Date()
-          )
-        }
+        tryCatch(
+          {
+            data <- get_paginated_data(api_url = url, api_token = api_token)
 
-        data
+            if (nrow(data) > 0) {
+              data <- dplyr::mutate(
+                data,
+                form_id_num = form_id,
+                date_last_updated = Sys.Date()
+              )
+            }
+
+            data
+          },
+          error = function(e) {
+            cli::cli_alert_warning(
+              "Failed to download form {form_id}: {e$message}. Skipping."
+            )
+            data.frame()
+          }
+        )
       }
-    )
+    ) |>
+      dplyr::bind_rows()
   })
 
   gc() # Clean up memory
@@ -888,6 +897,12 @@ call_urls <- function(urls, api_token) {
 #' @param file_path The file path where data files will be stored, can be NULL.
 #' @param selected_columns Selected columns to download. Default is NULL.
 #'    It's in stringed list like c("year", "form_id")
+#' @param logical_filters Optional. A named list for filtering with logical
+#'                operators. Names are column names, values are vectors to
+#'                filter by. Uses OR within groups and AND between groups.
+#' @param comparison_filters Optional. A named list for filtering with
+#'                comparisons. Names are column names, values are comparison
+#'                conditions. Supports >, <, >=, <=, =, != operators.
 #' @param data_file_name The base name for the data file, defaults to
 #'      "my_ona_data".
 #' @param return_results An option to return the full results as an output,
@@ -904,6 +919,8 @@ get_updated_ona_data <- function(base_url = "https://api.whonghub.org",
                                  form_ids, api_token,
                                  log_results = TRUE, file_path = NULL,
                                  selected_columns = NULL,
+                                 logical_filters = NULL,
+                                 comparison_filters = NULL,
                                  data_file_name = "my_ona_data",
                                  return_results = FALSE) {
   # check base url validity
@@ -961,25 +978,38 @@ get_updated_ona_data <- function(base_url = "https://api.whonghub.org",
   )
 
 
-  # If getting multiple columns, include these in url --------------------------
+  # Build query params for columns and filters ---------------------------------
 
-  if (!is.null(selected_columns)) {
-    # Convert selected_columns to JSON array string
-    if (!is.null(selected_columns)) {
-      # selected_columns <- c("_id", selected_columns) # ensure there is id col
-      fields_json <- jsonlite::toJSON(selected_columns, auto_unbox = FALSE)
-    } else {
-      fields_json <- NULL
-    }
+  fields_json <- if (!is.null(selected_columns)) {
+    jsonlite::toJSON(selected_columns, auto_unbox = FALSE)
+  } else {
+    NULL
+  }
 
-    url_list <- NULL
+  query_json <- if (!is.null(logical_filters) && !is.null(comparison_filters)) {
+    comparison <- process_comparison_filters(comparison_filters) |>
+      jsonlite::minify() |>
+      gsub("^\\{|\\}$", "", x = _)
+    logical <- process_logical_filters(logical_filters) |>
+      jsonlite::minify() |>
+      gsub("^\\{|\\}$", "", x = _)
+    paste0("{", comparison, ",", logical, "}") |>
+      jsonlite::minify()
+  } else if (!is.null(comparison_filters)) {
+    process_comparison_filters(comparison_filters)
+  } else if (!is.null(logical_filters)) {
+    process_logical_filters(logical_filters)
+  } else {
+    NULL
+  }
 
-    for (url in urls) {
-      # Build the full URL for each form id
-      results <- httr::modify_url(url, query = fields_json)
-
-      url_list[[url]] <- results
-    }
+  if (!is.null(fields_json) || !is.null(query_json)) {
+    url_list <- lapply(urls, function(url) {
+      httr::modify_url(
+        url,
+        query = list(fields = fields_json, query = query_json)
+      )
+    })
   } else {
     url_list <- urls
   }
@@ -997,15 +1027,23 @@ get_updated_ona_data <- function(base_url = "https://api.whonghub.org",
   # update the existing data ---------------------------------------------------
 
   # Combine new data with existing data
-  full_data <- dplyr::bind_rows(full_data_orig, new_data) |>
-    dplyr::arrange(
-      `_id`,
-      dplyr::desc(date_last_updated),
-      dplyr::desc(date_last_updated)
-    ) |>
-    dplyr::group_by(`_id`, form_id_num) |>
-    dplyr::slice(1) |>
-    dplyr::ungroup()
+  full_data <- dplyr::bind_rows(full_data_orig, new_data)
+
+  # Find the ID column (_id, id, or X_id)
+  id_col <- intersect(c("_id", "id", "X_id"), names(full_data))[1]
+
+  if (!is.na(id_col)) {
+    full_data <- full_data |>
+      dplyr::arrange(
+        .data[[id_col]],
+        dplyr::desc(date_last_updated)
+      ) |>
+      dplyr::group_by(.data[[id_col]], form_id_num) |>
+      dplyr::slice(1) |>
+      dplyr::ungroup()
+  } else {
+    full_data <- dplyr::distinct(full_data)
+  }
 
   # parse GPS columns if present
   full_data <- .parse_gps_columns(full_data)

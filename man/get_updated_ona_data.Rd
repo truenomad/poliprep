@@ -11,6 +11,8 @@ get_updated_ona_data(
   log_results = TRUE,
   file_path = NULL,
   selected_columns = NULL,
+  logical_filters = NULL,
+  comparison_filters = NULL,
   data_file_name = "my_ona_data",
   return_results = FALSE
 )
@@ -30,6 +32,14 @@ data updates, defaults to TRUE.}
 
 \item{selected_columns}{Selected columns to download. Default is NULL.
 It's in stringed list like c("year", "form_id")}
+
+\item{logical_filters}{Optional. A named list for filtering with logical
+operators. Names are column names, values are vectors to
+filter by. Uses OR within groups and AND between groups.}
+
+\item{comparison_filters}{Optional. A named list for filtering with
+comparisons. Names are column names, values are comparison
+conditions. Supports >, <, >=, <=, =, != operators.}
 
 \item{data_file_name}{The base name for the data file, defaults to
 "my_ona_data".}

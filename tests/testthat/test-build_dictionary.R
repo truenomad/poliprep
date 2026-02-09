@@ -125,8 +125,19 @@ test_that("build_dictionary with language parameter", {
   result_en <- build_dictionary(df, language = "en")
   result_fr <- build_dictionary(df, language = "fr")
 
-  # labels should differ by language
-  expect_false(identical(result_en$label, result_fr$label))
+  # English label is always present in both
+  expect_true("label" %in% names(result_en))
+  expect_true("label" %in% names(result_fr))
+
+  # label column is always English regardless of language param
+  expect_identical(result_en$label, result_fr$label)
+
+  # French result has an additional label_fr column
+  expect_true("label_fr" %in% names(result_fr))
+  expect_false("label_fr" %in% names(result_en))
+
+  # French translation should differ from English
+  expect_false(identical(result_fr$label, result_fr$label_fr))
 })
 
 test_that("build_dictionary calculates unique counts", {

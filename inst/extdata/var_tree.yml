@@ -116,7 +116,15 @@ lqas:
     label_en: "Child sleeping, not woken for vaccination"
     label_fr: "Enfant endormi, non réveillé pour la vaccination"
 
+  resp_child_was_asleep:
+    label_en: "Child sleeping, not woken for vaccination"
+    label_fr: "Enfant endormi, non réveillé pour la vaccination"
+
   resp_child_visitor:
+    label_en: "Child visiting from outside catchment area"
+    label_fr: "Enfant en visite provenant d'une autre zone"
+
+  resp_child_is_a_visitor:
     label_en: "Child visiting from outside catchment area"
     label_fr: "Enfant en visite provenant d'une autre zone"
 
@@ -124,11 +132,23 @@ lqas:
     label_en: "Reported vaccinated but no finger mark evidence"
     label_fr: "Signalé vacciné mais sans preuve de marque au doigt"
 
+  resp_vaccinated_but_not_fm:
+    label_en: "Reported vaccinated but no finger mark evidence"
+    label_fr: "Signalé vacciné mais sans preuve de marque au doigt"
+
   caregiver_informed_sia:
     label_en: "Caregivers aware of SIA before campaign"
     label_fr: "Tuteurs informés de l'AVS avant la campagne"
 
+  care_giver_informed_sia:
+    label_en: "Caregivers aware of SIA before campaign"
+    label_fr: "Tuteurs informés de l'AVS avant la campagne"
+
   pct_caregiver_informed_sia:
+    label_en: "% caregivers with prior SIA awareness"
+    label_fr: "% de tuteurs informés de l'AVS au préalable"
+
+  pct_care_giver_informed_sia:
     label_en: "% caregivers with prior SIA awareness"
     label_fr: "% de tuteurs informés de l'AVS au préalable"
 
@@ -147,6 +167,26 @@ lqas:
   vaccine_type:
     label_en: "OPV antigen used: bOPV, nOPV2, or mOPV"
     label_fr: "Antigène VPO utilisé: bVPO, nVPO2, ou mVPO"
+
+  resp_child_not_born:
+    label_en: "Child not yet born (NGA-specific reason)"
+    label_fr: "Enfant pas encore né (raison spécifique au NGA)"
+
+  resp_security:
+    label_en: "Security concerns preventing vaccination (NGA-specific reason)"
+    label_fr: "Problèmes de sécurité empêchant la vaccination (raison spécifique au NGA)"
+
+  prev_opv:
+    label_en: "Sum of previous OPV doses across children (NGA-specific)"
+    label_fr: "Somme des doses VPO précédentes pour les enfants (spécifique au NGA)"
+
+  total_opv_doses:
+    label_en: "Sum of total OPV doses across children (NGA-specific)"
+    label_fr: "Somme totale des doses VPO pour les enfants (spécifique au NGA)"
+
+  fm_2opv_drop:
+    label_en: "Children confirmed with 2 OPV drops (NGA-specific)"
+    label_fr: "Enfants confirmés avec 2 gouttes de VPO (spécifique au NGA)"
 
 # Surveillance metadata
 surveillance:
