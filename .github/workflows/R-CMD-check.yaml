@@ -20,11 +20,7 @@ jobs:
         config:
           - {os: macos-latest,   r: 'release'}
           - {os: windows-latest, r: 'release'}
-          # terra does not build on R-devel at present, so only that job skips it.
-          # Remove ignore-packages once terra builds on R-devel again.
-          - {os: ubuntu-latest,   r: 'devel', http-user-agent: 'release', ignore-packages: 'terra=?ignore'}
           - {os: ubuntu-latest,   r: 'release'}
-          - {os: ubuntu-latest,   r: 'oldrel-1'}
 
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
@@ -43,7 +39,7 @@ jobs:
 
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
-          extra-packages: any::rcmdcheck, ${{ matrix.config.ignore-packages }}
+          extra-packages: any::rcmdcheck
           needs: check
 
       - uses: r-lib/actions/check-r-package@v2
