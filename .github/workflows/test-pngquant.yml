@@ -5,9 +5,7 @@ on:
   push:
     paths:
       - ".github/workflows/test-pngquant.yml"
-      - "R/**"
-      - "DESCRIPTION"
-      - "NAMESPACE"
+      - "R/compress_png.R"
 
 jobs:
   pngquant-test:

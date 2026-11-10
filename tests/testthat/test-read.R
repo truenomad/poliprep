@@ -85,7 +85,7 @@ testthat::test_that("Function imports data from URLs correctly", {
   # The raw URL for the mtcars.csv file from GitHub
   github_url <- paste0(
     "https://raw.githubusercontent.com/",
-    "WorldHealthOrganization/poliprep/",
+    "truenomad/poliprep/",
     "master/inst/extdata/test_data.csv"
   )
 
