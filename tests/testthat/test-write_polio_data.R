@@ -2,7 +2,7 @@
 
 has_writer <- function(fmt) {
   tryCatch({
-    reg <- poliprep:::.writer_registry()
+    reg <- .writer_registry()
     fmt %in% names(reg)
   }, error = function(e) FALSE)
 }
