@@ -3,7 +3,8 @@
 #' This function provides a unified interface for saving data to various
 #' file formats supported by the [rio::export()] function. The format is
 #' automatically detected from the file extension to simplify the saving
-#' process.
+#' process. Files ending in `.qs2` are written with `qs2::qs_save()`, which
+#' needs the optional 'qs2' package.
 #'
 #' @param data The dataset to be saved
 #' @param file_path Character string specifying the path to the output file.
@@ -73,7 +74,10 @@ save <- function(data, file_path, ...) {
     open(con)
     saveRDS(data, con)
     close(con)
-  
+
+  } else if (file_ext %in% "qs2") {
+    rlang::check_installed("qs2", reason = "to write '.qs2' files.")
+    qs2::qs_save(data, file_path, ...)
   } else if (file_ext %in% "shp") { # shp shapefiles
     sf::write_sf(data, file_path, ...)
   } else if (file_ext %in% c("json", "geojson")) { # json shapefiles

@@ -1,7 +1,7 @@
 Package: poliprep
 Type: Package
 Title: For Processing and Validating Various Types of Epidemiological Data
-Version: 1.4.0
+Version: 1.5.0
 Authors@R: c(
   person("Mohamed A.", "Yusuf",
          role = c("aut", "cre"),
@@ -44,7 +44,9 @@ Imports:
   archive,
   RODBC,
   geosphere,
-  rprojroot
+  rprojroot,
+  digest,
+  glue
 Suggests:
     httr2,
     xml2,
@@ -56,7 +58,6 @@ Suggests:
     withr,
     stringdist,
     crayon,
-    glue,
     yaml,
     scales,
     webshot,
@@ -73,7 +74,10 @@ Suggests:
     here,
     remotes,
     terra,
-    qs2
+    qs2,
+    openxlsx,
+    arrow,
+    vctrs
 Config/testthat/edition: 3
 Encoding: UTF-8
 LazyData: true
