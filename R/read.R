@@ -3,7 +3,8 @@
 #' This function provides a unified interface for reading data from various
 #' file formats supported by the [rio::import()] and [sf::read_sf()] functions.
 #' The format is automatically detected from the file extension to simplify the
-#' importing process.
+#' importing process. Files ending in `.qs2` are read with `qs2::qs_read()`,
+#' which needs the optional 'qs2' package.
 #'
 #' @param file_path Character string specifying the path to the input file or
 #'   a URL pointing to the dataset.
@@ -71,8 +72,11 @@ read <- function(file_path, ...) {
       res <- readRDS(con)
       close(con)
       res
-      
-    } else if (file_ext %in% c("shp", "json", "geojson")) { # for shapefiles
+
+    } else if (file_ext == "qs2") {
+    rlang::check_installed("qs2", reason = "to read '.qs2' files.")
+    qs2::qs_read(file_path, ...)
+  } else if (file_ext %in% c("shp", "json", "geojson")) { # for shapefiles
     sf::read_sf(file_path, ...)
   } else {
     stop(

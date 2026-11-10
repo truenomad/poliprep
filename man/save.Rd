@@ -23,7 +23,8 @@ No return value, called for side effects.
 This function provides a unified interface for saving data to various
 file formats supported by the \code{\link[rio:export]{rio::export()}} function. The format is
 automatically detected from the file extension to simplify the saving
-process.
+process. Files ending in \code{.qs2} are written with \code{qs2::qs_save()}, which
+needs the optional 'qs2' package.
 }
 \examples{
 # Create temporary account

@@ -22,7 +22,8 @@ A data frame or appropriate R object containing the imported data.
 This function provides a unified interface for reading data from various
 file formats supported by the \code{\link[rio:import]{rio::import()}} and \code{\link[sf:st_read]{sf::read_sf()}} functions.
 The format is automatically detected from the file extension to simplify the
-importing process.
+importing process. Files ending in \code{.qs2} are read with \code{qs2::qs_read()},
+which needs the optional 'qs2' package.
 }
 \examples{
 # Locate test data directory
